@@ -24,5 +24,13 @@ constexpr float EXPECTED_PWM_DELAY = MAIN_CYCLE_DELAY/1000.0;
 constexpr float RELATIVE_MAX_SPEED = 0.3; //meters per second
 constexpr float RELATIVE_MAX_ROT = 0.2; //meters per second
 
-
 constexpr unsigned TIMER_MS=10;
+
+constexpr float POWER_OFF_VOLTAGE = 20.3; //Volts
+constexpr float POWER_ON_VOLTAGE = 22.0; //Volts
+constexpr unsigned long DEEP_SLEEP_DURATION = 60; //Seconds
+constexpr float VCC_REF_ADC1=1347.0; //Reference ADC value point 1
+constexpr float VCC_REF_V1=25.0; //Reference voltage point 1
+constexpr float VCC_REF_ADC2=747.0; //Reference ADC value point 2
+constexpr float VCC_REF_V2=15.0; //Reference voltage point 1
+

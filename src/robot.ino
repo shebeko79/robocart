@@ -1,5 +1,7 @@
 //Board ESP32-WROOM-DA Module
 #include "motor_speed.h"
+#include "robot_pins.h"
+#include "power_managment.h"
 #include <BluetoothSerial.h>
 
 #define DEVICE_NAME "rccar"
@@ -7,8 +9,8 @@ static const int portNumber = 1500;
 
 const char *bluetooth_pin = "1234";
 
-MotorSpeed leftWheel(MotorZsx11h(12,13,0,27,true));
-MotorSpeed rightWheel(MotorZsx11h(25,26,1,32,false));
+MotorSpeed leftWheel(MotorZsx11h(ML_PWM_PIN, ML_DIR_PIN, 0, ML_STOP_PIN, true));
+MotorSpeed rightWheel(MotorZsx11h(MR_PWM_PIN, MR_DIR_PIN, 1, MR_STOP_PIN, false));
 
 volatile unsigned long last_ms = 0;
 bool auto_cmd_blocked = false;
@@ -59,16 +61,22 @@ void IRAM_ATTR right_tick_isr()
 void setup() 
 {
   Serial.begin(115200);
+
+  setupPowerPins();
+  setupVCC_ADC();
+  checkIfEnoughVoltageToStart();
+  enablePowerModules(true);
+
+  leftWheel.init();
+  rightWheel.init();
+
   SerialAuto.begin(115200);
 
   SerialBT.begin(DEVICE_NAME); //Bluetooth device name
   SerialBT.setPin(bluetooth_pin);
 
-  leftWheel.init();
-  rightWheel.init();
-
-  attachInterrupt(digitalPinToInterrupt(14), left_tick_isr, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(33), right_tick_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ML_A), left_tick_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MR_A), right_tick_isr, CHANGE);
 
   speed_timer = timerBegin(0, 80, true);
   timerAttachInterrupt(speed_timer, &SpeedTimer_ISR, true);
@@ -290,4 +298,5 @@ void loop()
   
   processStream(SerialAuto,"S2",auto_cmd_blocked);
   applyDriveRequest(drive_request);
+  checkLowVoltageSleep();
 }
