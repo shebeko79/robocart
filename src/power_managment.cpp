@@ -14,9 +14,29 @@ void setupPowerPins()
   pinMode(V12_CUT2_PIN, OUTPUT);
 }
 
+void allOtherPinsToInputState()
+{
+  pinMode(ML_PWM_PIN, INPUT);
+  pinMode(ML_DIR_PIN, INPUT);
+  pinMode(ML_STOP_PIN, INPUT);
+  pinMode(ML_A, INPUT);
+  pinMode(ML_B, INPUT);
+  pinMode(ML_C, INPUT);
+
+  pinMode(MR_PWM_PIN, INPUT);
+  pinMode(MR_DIR_PIN, INPUT);
+  pinMode(MR_STOP_PIN, INPUT);
+  pinMode(MR_A, INPUT);
+  pinMode(MR_B, INPUT);
+  pinMode(MR_C, INPUT);
+
+  pinMode(VCC_ADC_PIN, INPUT);
+}
+
+
 void enablePowerModules(bool power_on)
 {
-  int val = power_on? LOW: HIGH;
+  int val = power_on? HIGH: LOW;
   digitalWrite(VCC_CUT_PIN, val);
   digitalWrite(V5_CUT_PIN, val);
   digitalWrite(V12_CUT_PIN, val);

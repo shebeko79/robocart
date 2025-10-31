@@ -9,8 +9,8 @@ static const int portNumber = 1500;
 
 const char *bluetooth_pin = "1234";
 
-MotorSpeed leftWheel(MotorZsx11h(ML_PWM_PIN, ML_DIR_PIN, 0, ML_STOP_PIN, true));
-MotorSpeed rightWheel(MotorZsx11h(MR_PWM_PIN, MR_DIR_PIN, 1, MR_STOP_PIN, false));
+MotorSpeed leftWheel(MotorZsx11h(ML_PWM_PIN, ML_DIR_PIN, 0, ML_STOP_PIN, true), ML_A,ML_B,ML_C);
+MotorSpeed rightWheel(MotorZsx11h(MR_PWM_PIN, MR_DIR_PIN, 1, MR_STOP_PIN, false), MR_A,MR_B,MR_C);
 
 volatile unsigned long last_ms = 0;
 bool auto_cmd_blocked = false;
@@ -60,6 +60,8 @@ void IRAM_ATTR right_tick_isr()
 
 void setup() 
 {
+  allOtherPinsToInputState();
+
   Serial.begin(115200);
 
   setupPowerPins();
@@ -67,16 +69,23 @@ void setup()
   checkIfEnoughVoltageToStart();
   enablePowerModules(true);
 
-  leftWheel.init();
-  rightWheel.init();
+  delay(100);
 
   SerialAuto.begin(115200);
 
   SerialBT.begin(DEVICE_NAME); //Bluetooth device name
   SerialBT.setPin(bluetooth_pin);
 
+  leftWheel.init();
+  rightWheel.init();
+
   attachInterrupt(digitalPinToInterrupt(ML_A), left_tick_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ML_B), left_tick_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ML_C), left_tick_isr, CHANGE);
+
   attachInterrupt(digitalPinToInterrupt(MR_A), right_tick_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MR_B), right_tick_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MR_C), right_tick_isr, CHANGE);
 
   speed_timer = timerBegin(0, 80, true);
   timerAttachInterrupt(speed_timer, &SpeedTimer_ISR, true);
@@ -298,5 +307,5 @@ void loop()
   
   processStream(SerialAuto,"S2",auto_cmd_blocked);
   applyDriveRequest(drive_request);
-  checkLowVoltageSleep();
+  //checkLowVoltageSleep();
 }

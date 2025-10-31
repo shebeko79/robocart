@@ -19,13 +19,17 @@ public:
   };
   
 public:
-  MotorSpeed(const Motor& motor) : 
-    m_motor(motor)
+  MotorSpeed(const Motor& motor, int hall_a, int hall_b, int hall_c) : 
+    m_motor(motor),
+    m_hall_a(hall_a),m_hall_b(hall_b),m_hall_c(hall_c)
   {
   }
 
   void init()
   {
+    pinMode(m_hall_a, INPUT);
+    pinMode(m_hall_b, INPUT);
+    pinMode(m_hall_c, INPUT);
     m_motor.init();
   }
 
@@ -50,6 +54,8 @@ private:
   void reset_pid();
   
 private:
+  const int m_hall_a,m_hall_b,m_hall_c;
+
   volatile float m_dst_speed = 0.0;
 
   Motor m_motor;

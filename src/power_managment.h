@@ -1,6 +1,7 @@
 #pragma once
 
 void setupPowerPins();
+void allOtherPinsToInputState();
 void enablePowerModules(bool power_on);
 
 void setupVCC_ADC();
