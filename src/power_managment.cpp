@@ -4,6 +4,9 @@
 #include "robot_defs.h"
 #include "robot_pins.h"
 
+static float avg_voltage = 0.0;
+static unsigned long low_voltage_ms = 0;
+
 void setupPowerPins()
 {
   enablePowerModules(false);
@@ -71,11 +74,39 @@ void checkIfEnoughVoltageToStart()
   float vcc = getVCCVoltage();
   if (vcc<POWER_ON_VOLTAGE)
     goToSleepMode(DEEP_SLEEP_DURATION);
+
+    avg_voltage = vcc;
 }
 
 void checkLowVoltageSleep()
 {
   float vcc = getVCCVoltage();
-  if (vcc<POWER_OFF_VOLTAGE)
+  avg_voltage = (vcc + avg_voltage) / 2.0;
+
+  if (avg_voltage>=POWER_OFF_VOLTAGE)
+  {
+    low_voltage_ms = 0;
+    return;
+  }
+
+  if(low_voltage_ms == 0)
+  {
+    low_voltage_ms = millis();
+    return;
+  }
+
+  unsigned long d = millis() - low_voltage_ms;
+
+  //Serial.print(" vcc=");
+  //Serial.print(vcc,4);
+  //Serial.print(" avg_voltage=");
+  //Serial.print(avg_voltage,4);
+  //Serial.print(" d=");
+  //Serial.print(d);
+  //Serial.print(" low_voltage_ms=");
+  //Serial.print(low_voltage_ms);
+  //Serial.println("");
+
+  if(d > LOW_VOLTAGE_SLEEP_DELAY)
     goToSleepMode(DEEP_SLEEP_DURATION);
 }

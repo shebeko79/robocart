@@ -79,13 +79,13 @@ void setup()
   leftWheel.init();
   rightWheel.init();
 
-  attachInterrupt(digitalPinToInterrupt(ML_A), left_tick_isr, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ML_B), left_tick_isr, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ML_C), left_tick_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ML_A), left_tick_isr, RISING);
+  attachInterrupt(digitalPinToInterrupt(ML_B), left_tick_isr, RISING);
+  attachInterrupt(digitalPinToInterrupt(ML_C), left_tick_isr, RISING);
 
-  attachInterrupt(digitalPinToInterrupt(MR_A), right_tick_isr, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(MR_B), right_tick_isr, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(MR_C), right_tick_isr, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MR_A), right_tick_isr, RISING);
+  attachInterrupt(digitalPinToInterrupt(MR_B), right_tick_isr, RISING);
+  attachInterrupt(digitalPinToInterrupt(MR_C), right_tick_isr, RISING);
 
   speed_timer = timerBegin(0, 80, true);
   timerAttachInterrupt(speed_timer, &SpeedTimer_ISR, true);
@@ -307,5 +307,5 @@ void loop()
   
   processStream(SerialAuto,"S2",auto_cmd_blocked);
   applyDriveRequest(drive_request);
-  //checkLowVoltageSleep();
+  checkLowVoltageSleep();
 }

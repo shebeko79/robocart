@@ -26,11 +26,12 @@ constexpr float RELATIVE_MAX_ROT = 0.2; //meters per second
 
 constexpr unsigned TIMER_MS=10;
 
-constexpr float POWER_OFF_VOLTAGE = 20.3; //Volts
+constexpr float POWER_OFF_VOLTAGE = 20.6; //Volts
 constexpr float POWER_ON_VOLTAGE = 22.0; //Volts
 constexpr unsigned long DEEP_SLEEP_DURATION = 60; //Seconds
-constexpr float VCC_REF_ADC1=1304.0; //Reference ADC value point 1
+constexpr unsigned long LOW_VOLTAGE_SLEEP_DELAY = 5000; //Milliseconds. Delay before go sleep on low voltage
+constexpr float VCC_REF_ADC1=1333.0; //Reference ADC value point 1
 constexpr float VCC_REF_V1=25.0; //Reference voltage point 1
-constexpr float VCC_REF_ADC2=714.0; //Reference ADC value point 2
+constexpr float VCC_REF_ADC2=739.0; //Reference ADC value point 2
 constexpr float VCC_REF_V2=15.0; //Reference voltage point 1
 
