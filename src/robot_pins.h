@@ -9,7 +9,7 @@ constexpr int ML_PWM_PIN = 26;
 constexpr int ML_DIR_PIN = 27;
 constexpr int ML_STOP_PIN = 25;
 constexpr int ML_A = 34;
-constexpr int ML_B = 39;
+constexpr int ML_B = 23;
 constexpr int ML_C = 18;
 
 constexpr int MR_PWM_PIN = 12;
