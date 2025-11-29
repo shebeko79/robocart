@@ -1,55 +1,9 @@
+#include <Arduino.h>
 #include "motor_speed.h"
-
-//st=4 0;0;1
-//st=6 0;1;1
-//st=2 0;1;0
-//st=3 1;1;0
-//st=1 1;0;0
-//st=5 1;0;1
-static constexpr int hall2idx[]={-1,4,2,3,0,5,1,-1};
-
-  void MotorSpeed::speed_pin_isr()
-{
-  int hall_idx = readHallIndex();
-
-  //Incorrect state of hall sensors
-  if(hall_idx == -1)
-    return;
-
-  int d = hall_idx - m_hall_idx;
-  if(std::abs(d)>3)
-    d += 6*(d<0) -6*(d>0);
-
-  m_hall_idx = hall_idx;
-
-  unsigned t = m_timer_val;
-  m_periods[t%PERIODS_COUNT] += d;
-  m_ticks_count += d;
-}
-
-int MotorSpeed::readHallIndex()
-{
-  unsigned st = (digitalRead(m_hall_a) == HIGH) | ((digitalRead(m_hall_b) == HIGH)<<1) | ((digitalRead(m_hall_c) == HIGH)<<2);
-  return hall2idx[st];
-}
-
-void MotorSpeed::timer_isr(unsigned timer_val)
-{
-  unsigned new_pi=timer_val%PERIODS_COUNT;
-  unsigned old_pi=m_timer_val%PERIODS_COUNT;
-
-  if(new_pi != old_pi)
-  {
-    m_ticks_count-=m_periods[new_pi];
-    m_periods[new_pi] = 0;
-  }
-
-  m_timer_val = timer_val;
-}
 
 void MotorSpeed::apply()
 {
-  float cur_speed = get_speed_meters();
+  float cur_speed = m_motor.get_speed_meters();
   Motor::State st = m_motor.get_state();
 
   if(st == Motor::st_brake && m_brake_state == bs_change_direction)
@@ -195,7 +149,7 @@ void MotorSpeed::fail_safe()
 
 void MotorSpeed::dump_state(const String& caption, Stream& stream)
 {
-  float cur_speed = get_speed_meters();
+  float cur_speed = m_motor.get_speed_meters();
   Motor::State st = m_motor.get_state();
 
   if(st == Motor::st_brake && cur_speed == 0.0)

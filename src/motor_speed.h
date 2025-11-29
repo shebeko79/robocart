@@ -5,9 +5,6 @@
 class MotorSpeed
 {
 public:
-  static constexpr unsigned PERIODS_COUNT = 50;
-  static constexpr float KPER_SEC=1000.0/(PERIODS_COUNT*TIMER_MS);
-
   typedef MotorZsx11h Motor;
 
   enum BrakeState
@@ -19,22 +16,13 @@ public:
   };
   
 public:
-  MotorSpeed(const Motor& motor, int hall_a, int hall_b, int hall_c) : 
-    m_motor(motor),
-    m_hall_a(hall_a),m_hall_b(hall_b),m_hall_c(hall_c)
+  MotorSpeed(Motor& motor) : 
+    m_motor(motor)
   {
   }
 
   void init()
   {
-    pinMode(m_hall_a, INPUT);
-    pinMode(m_hall_b, INPUT);
-    pinMode(m_hall_c, INPUT);
-    
-    int hall_idx = readHallIndex();
-    if(hall_idx != -1)
-      m_hall_idx = hall_idx;
-
     m_motor.init();
   }
 
@@ -42,11 +30,6 @@ public:
   {
     m_dst_speed = constrain(speed, -MAX_SPEED, MAX_SPEED);
   }
-
-  void speed_pin_isr();
-  void timer_isr(unsigned timer_val);
-  
-  inline float get_speed_meters()const{return (m_motor.is_forward()? 1.0:-1.0)*m_ticks_count*KPER_SEC/WHEEL_PULSES_PER_METER;}
 
   void apply();
   
@@ -56,20 +39,11 @@ public:
 private:
   float calc_pwm(float cur_speed, bool &is_brake);
   void reset_pid();
-
-  int readHallIndex();
   
 private:
-  const int m_hall_a,m_hall_b,m_hall_c;
-
   volatile float m_dst_speed = 0.0;
 
-  Motor m_motor;
-
-  volatile unsigned m_timer_val=0;
-  volatile int m_periods[PERIODS_COUNT];
-  volatile int m_ticks_count = 0;
-  volatile int m_hall_idx = 0;
+  Motor& m_motor;
 
   unsigned m_prev_steps=0;
   float m_prev_speed=0.0;

@@ -9,8 +9,11 @@ static const int portNumber = 1500;
 
 const char *bluetooth_pin = "1234";
 
-MotorSpeed leftWheel(MotorZsx11h(ML_PWM_PIN, ML_DIR_PIN, 0, ML_STOP_PIN, true), ML_A,ML_B,ML_C);
-MotorSpeed rightWheel(MotorZsx11h(MR_PWM_PIN, MR_DIR_PIN, 1, MR_STOP_PIN, false), MR_A,MR_B,MR_C);
+MotorZsx11h leftMotor(ML_PWM_PIN, ML_DIR_PIN, 0, ML_STOP_PIN, true, ML_A,ML_B,ML_C);
+MotorZsx11h rightMotor(MR_PWM_PIN, MR_DIR_PIN, 1, MR_STOP_PIN, false, MR_A,MR_B,MR_C);
+
+MotorSpeed leftWheel(leftMotor);
+MotorSpeed rightWheel(rightMotor);
 
 volatile unsigned long last_ms = 0;
 bool auto_cmd_blocked = false;
@@ -44,18 +47,18 @@ DriveRequest drive_request;
 void IRAM_ATTR SpeedTimer_ISR()
 {
   ++speed_timer_count;
-  leftWheel.timer_isr(speed_timer_count);
-  rightWheel.timer_isr(speed_timer_count);
+  leftMotor.timer_isr(speed_timer_count);
+  rightMotor.timer_isr(speed_timer_count);
 }
 
 void IRAM_ATTR left_tick_isr()
 {
-  leftWheel.speed_pin_isr();
+  leftMotor.speed_pin_isr();
 }
 
 void IRAM_ATTR right_tick_isr()
 {
-  rightWheel.speed_pin_isr();
+  rightMotor.speed_pin_isr();
 }
 
 void setup() 

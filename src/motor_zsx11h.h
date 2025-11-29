@@ -1,81 +1,33 @@
 #pragma once
-#include <Arduino.h>
+#include "robot_defs.h"
 
 class MotorZsx11h
 {
 public:
+  static constexpr unsigned PERIODS_COUNT = 50;
+  static constexpr float KPER_SEC=1000.0/(PERIODS_COUNT*TIMER_MS);
   static const int MAX_PWM=255;
+
   enum State{st_off,st_forward,st_backward,st_brake};
   
-  MotorZsx11h(int pwm,int dir,int pwm_channel, int stop,bool dir_forward):
+  MotorZsx11h(int pwm,int dir,int pwm_channel, int stop,bool dir_forward,
+              int hall_a, int hall_b, int hall_c):
     PWM(pwm),DIR(dir),PWM_CHANNEL(pwm_channel),STOP(stop),
-    DIR_FORWARD(dir_forward), m_state(st_off)
+    DIR_FORWARD(dir_forward), m_state(st_off),
+    m_hall_a(hall_a),m_hall_b(hall_b),m_hall_c(hall_c)
     {}
 
-  void init()
-  {
-    pinMode(STOP, OUTPUT);
-    digitalWrite(STOP, HIGH);
+  void init();
+  void soft_stop();
+  void brake();
+  void forward(int val=MAX_PWM);
+  void backward(int val=MAX_PWM);
 
-    ledcSetup(PWM_CHANNEL, 20000, 8);
-    ledcDetachPin(PWM);
-    digitalWrite(PWM, LOW);
-    pinMode(PWM, OUTPUT);
-
-    pinMode(DIR, OUTPUT);
-    digitalWrite(DIR, DIR_FORWARD);
-
-    soft_stop();
-  }
-
-  void soft_stop()
-  {
-    ledcDetachPin(PWM);
-    digitalWrite(PWM, LOW);
-    digitalWrite(STOP, LOW);
-    
-    m_state = st_off;
-  }
-
-  void brake()
-  {
-    ledcDetachPin(PWM);
-    digitalWrite(PWM, LOW);
-    digitalWrite(STOP, HIGH);
-    
-    m_state = st_brake;
-  }
-
-  void forward(int val=MAX_PWM)
-  {
-    if(m_state != st_forward)
-    {
-      soft_stop();
-      digitalWrite(STOP, LOW);
-      digitalWrite(DIR, DIR_FORWARD);
-      ledcAttachPin(PWM, PWM_CHANNEL);
-    }
-    
-    ledcWrite(PWM_CHANNEL, val);
-    m_state = st_forward;
-  }
+  void speed_pin_isr();
+  void timer_isr(unsigned timer_val);
   
-  void backward(int val=MAX_PWM)
-  {
-    if(m_state != st_backward)
-    {
-      soft_stop();
-      digitalWrite(STOP, LOW);
-      digitalWrite(DIR, !DIR_FORWARD);
-      ledcAttachPin(PWM, PWM_CHANNEL);
-    }
-    
-    ledcWrite(PWM_CHANNEL, val);
-    m_state = st_backward;
-  }
-
+  inline float get_speed_meters()const{return (DIR_FORWARD? 1.0:-1.0)*m_ticks_count*KPER_SEC/WHEEL_PULSES_PER_METER;}
   inline State get_state() const{return m_state;}
-  inline bool is_forward() const{return DIR_FORWARD;}
   
 private:
   const int PWM;
@@ -85,4 +37,13 @@ private:
 
   const bool DIR_FORWARD;
   State m_state;
+
+  const int m_hall_a,m_hall_b,m_hall_c;
+
+  volatile unsigned m_timer_val=0;
+  volatile int m_periods[PERIODS_COUNT];
+  volatile int m_ticks_count = 0;
+  volatile int m_hall_idx = 0;
+
+  int readHallIndex();
 };
