@@ -149,6 +149,9 @@ void processStream(T& stream, const char* caption,bool blocked)
 
 bool processDriveCommand(const char* buf)
 {
+  if(buf[0] == 0)
+    return false;
+
   float rel_speed=atof(buf);
   rel_speed=constrain(rel_speed, -1.0, 1.0);
 
@@ -170,13 +173,19 @@ bool processDriveCommand(const char* buf)
 
 bool processBlockCommand(const char* buf)
 {
-  auto_cmd_blocked=atol(buf)!=0;
+  if(buf[0] == 0)
+    return false;
+
+    auto_cmd_blocked=atol(buf)!=0;
 
   return true;
 }
 
 bool processRelMaxSpeedCommand(const char* buf)
 {
+  if(buf[0] == 0)
+    return false;
+
   float speed = atof(buf);
   if(speed<=0.0 || speed>MAX_SPEED)
     return false;
@@ -186,10 +195,52 @@ bool processRelMaxSpeedCommand(const char* buf)
   return true;
 }
 
-template<typename T>
-void answerCommand(T& stream, const String& cmd, const String& answer)
+bool processStateCommand(const char* buf, String& answer_params)
 {
-    String str = answer+":cmd:" DEVICE_NAME ":" +cmd +"\r";
+  float v = getVCCVoltage();
+  float l = leftMotor.get_speed_meters();
+  float r = rightMotor.get_speed_meters();
+  answer_params =";"+String(v)+";"+String(l)+";"+String(r)+";"+String((int)auto_cmd_blocked);
+
+  return true;
+}
+
+bool processSleepCommand(const char* buf)
+{
+  if(buf[0] == 0)
+    return false;
+
+  float seconds = atof(buf);
+  if(seconds<=0.0)
+    return false;
+  
+  goToSleepMode(seconds);
+
+  return true;
+}
+
+bool processPowerCommand(const char* buf)
+{
+  if(strlen(buf)<7)
+    return false;
+  
+  if(buf[1]!=';' || buf[3]!=';' || buf[5]!=';')
+    return false;
+
+  bool vcc = buf[0]=='1';
+  bool v12 = buf[2]=='1';
+  bool v12_2 = buf[4]=='1';
+  bool v5 = buf[6]=='1';
+
+  enablePowerModules(vcc, v12, v12_2, v5);
+  return true;
+}
+
+
+template<typename T>
+void answerCommand(T& stream, const String& cmd, const String& answer,String& answer_params)
+{
+    String str = answer+":cmd:" DEVICE_NAME ":"+cmd+answer_params+"\r";
     //Serial.println(str);
     stream.print(str);
 }
@@ -202,18 +253,25 @@ void processCommand(T& stream, const char* buf,bool blocked)
   
   buf+=sizeof("cmd:" DEVICE_NAME ":")-1;
 
-  char* semi=strchr(buf, ':');
-  if(semi ==0)
-    return;
+  String cmd;
 
-  *semi = 0;
-  
-  String cmd(buf);
-  buf=semi+1;
-
-  if(blocked)
+  char* cmd_name_end=strchr(buf, ':');
+  if(cmd_name_end != 0)
   {
-    answerCommand(stream,cmd,"reject");
+    cmd = String(buf, (cmd_name_end-buf));
+    buf = cmd_name_end+1;
+  }
+  else
+  {
+    cmd = String(buf);
+    buf +=cmd.length();
+  }
+
+  String answer_params;
+
+  if(blocked && (cmd != "state"))
+  {
+    answerCommand(stream,cmd,"reject",answer_params);
     return;
   }
 
@@ -231,19 +289,31 @@ void processCommand(T& stream, const char* buf,bool blocked)
   {
     res = processRelMaxSpeedCommand(buf);
   }
+  else if(cmd == "state")
+  {
+    res = processStateCommand(buf,answer_params);
+  }
+  else if(cmd == "sleep")
+  {
+    res = processSleepCommand(buf);
+  }
+  else if(cmd == "power")
+  {
+    res = processPowerCommand(buf);
+  }
   else
   {
-    answerCommand(stream,cmd,"unknown");
+    answerCommand(stream,cmd,"unknown",answer_params);
     return;
   }
 
   if(res)
   {
-    answerCommand(stream,cmd,"accept");
+    answerCommand(stream,cmd,"accept",answer_params);
   }
   else
   {
-    answerCommand(stream,cmd,"invalid");
+    answerCommand(stream,cmd,"invalid",answer_params);
   }
 }
 

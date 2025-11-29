@@ -41,9 +41,17 @@ void enablePowerModules(bool power_on)
 {
   int val = power_on? HIGH: LOW;
   digitalWrite(VCC_CUT_PIN, val);
-  digitalWrite(V5_CUT_PIN, val);
   digitalWrite(V12_CUT_PIN, val);
   digitalWrite(V12_CUT2_PIN, val);
+  digitalWrite(V5_CUT_PIN, val);
+}
+
+void enablePowerModules(bool vcc, bool v12, bool v12_2, bool v5)
+{
+  digitalWrite(VCC_CUT_PIN, vcc);
+  digitalWrite(V12_CUT_PIN, v12);
+  digitalWrite(V12_CUT2_PIN, v12_2);
+  digitalWrite(V5_CUT_PIN, v5);
 }
 
 void setupVCC_ADC()
