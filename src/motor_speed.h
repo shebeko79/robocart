@@ -30,6 +30,11 @@ public:
     pinMode(m_hall_a, INPUT);
     pinMode(m_hall_b, INPUT);
     pinMode(m_hall_c, INPUT);
+    
+    int hall_idx = readHallIndex();
+    if(hall_idx != -1)
+      m_hall_idx = hall_idx;
+
     m_motor.init();
   }
 
@@ -41,8 +46,7 @@ public:
   void speed_pin_isr();
   void timer_isr(unsigned timer_val);
   
-  inline float get_speed_ticks()const{return m_ticks_count*KPER_SEC;}
-  inline float get_speed_meters()const{return m_ticks_count*KPER_SEC/WHEEL_PULSES_PER_METER;}
+  inline float get_speed_meters()const{return (m_motor.is_forward()? 1.0:-1.0)*m_ticks_count*KPER_SEC/WHEEL_PULSES_PER_METER;}
 
   void apply();
   
@@ -52,6 +56,8 @@ public:
 private:
   float calc_pwm(float cur_speed, bool &is_brake);
   void reset_pid();
+
+  int readHallIndex();
   
 private:
   const int m_hall_a,m_hall_b,m_hall_c;
@@ -61,8 +67,9 @@ private:
   Motor m_motor;
 
   volatile unsigned m_timer_val=0;
-  volatile unsigned m_periods[PERIODS_COUNT];
-  volatile unsigned m_ticks_count = 0;
+  volatile int m_periods[PERIODS_COUNT];
+  volatile int m_ticks_count = 0;
+  volatile int m_hall_idx = 0;
 
   unsigned m_prev_steps=0;
   float m_prev_speed=0.0;

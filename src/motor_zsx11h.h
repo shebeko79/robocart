@@ -75,6 +75,7 @@ public:
   }
 
   inline State get_state() const{return m_state;}
+  inline bool is_forward() const{return DIR_FORWARD;}
   
 private:
   const int PWM;

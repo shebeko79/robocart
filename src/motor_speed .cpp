@@ -1,10 +1,36 @@
 #include "motor_speed.h"
 
-void MotorSpeed::speed_pin_isr()
+//st=4 0;0;1
+//st=6 0;1;1
+//st=2 0;1;0
+//st=3 1;1;0
+//st=1 1;0;0
+//st=5 1;0;1
+static constexpr int hall2idx[]={-1,4,2,3,0,5,1,-1};
+
+  void MotorSpeed::speed_pin_isr()
 {
+  int hall_idx = readHallIndex();
+
+  //Incorrect state of hall sensors
+  if(hall_idx == -1)
+    return;
+
+  int d = hall_idx - m_hall_idx;
+  if(std::abs(d)>3)
+    d += 6*(d<0) -6*(d>0);
+
+  m_hall_idx = hall_idx;
+
   unsigned t = m_timer_val;
-  ++m_periods[t%PERIODS_COUNT];
-  ++m_ticks_count;
+  m_periods[t%PERIODS_COUNT] += d;
+  m_ticks_count += d;
+}
+
+int MotorSpeed::readHallIndex()
+{
+  unsigned st = (digitalRead(m_hall_a) == HIGH) | ((digitalRead(m_hall_b) == HIGH)<<1) | ((digitalRead(m_hall_c) == HIGH)<<2);
+  return hall2idx[st];
 }
 
 void MotorSpeed::timer_isr(unsigned timer_val)
@@ -28,7 +54,7 @@ void MotorSpeed::apply()
 
   if(st == Motor::st_brake && m_brake_state == bs_change_direction)
   {
-    if(cur_speed>OFF_SPEED)
+    if(std::abs(cur_speed)>OFF_SPEED)
       return;
     
     m_motor.soft_stop();
@@ -63,20 +89,17 @@ void MotorSpeed::apply()
     return;
   }
 
-  ctl_pwm = constrain(ctl_pwm, 0.0, 1.0);
-
   int pwm = ctl_pwm*Motor::MAX_PWM;
-  pwm = constrain(pwm, 0, Motor::MAX_PWM);
+  pwm = constrain(pwm, -Motor::MAX_PWM, Motor::MAX_PWM);
 
-  if(m_dst_speed<0)
-    m_motor.backward(pwm);
+  if(pwm<0)
+    m_motor.backward(-pwm);
   else
     m_motor.forward(pwm);
 }
 
 float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
 {
-  float dst_speed = abs(m_dst_speed);
   unsigned long cur_time = millis();
   float cur_acc = 0.0;
 
@@ -85,7 +108,7 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
 
   if(m_prev_steps < 2)
   {
-    res = m_speed2pwm * dst_speed;
+    res = m_speed2pwm * m_dst_speed;
     ++m_prev_steps;
   }
   else
@@ -97,31 +120,32 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
       cur_delay = (cur_time - m_prev_time)/1000.0;
     
     cur_acc = (cur_speed-m_prev_speed)/cur_delay;
-    const float dx = (cur_speed<=dst_speed)? 1.0:-1.0;
-    const float speed_correction = dx>0? UP_SPEED_CORRECTION:DOWN_SPEED_CORRECTION;
+    const float kdirection = (m_dst_speed<0)? -1.0:1.0;
+    const float dx = (cur_speed*kdirection<=m_dst_speed*kdirection)? 1.0:-1.0;
+    const float speed_correction = dx*kdirection>0? UP_SPEED_CORRECTION:DOWN_SPEED_CORRECTION;
 
     res = m_prev_pwm;
 
-    if(cur_acc*dx<0.0 || cur_acc*dx<CLOSE_TO_ZERO_ACCELERATION)
+    if(cur_acc*dx*kdirection<0.0 || cur_acc*dx*kdirection<CLOSE_TO_ZERO_ACCELERATION)
     {
-      res = m_prev_pwm+(dst_speed-cur_speed)*speed_correction;
+      res = m_prev_pwm+(m_dst_speed-cur_speed)*speed_correction;
     }
 
     if(dx>0)
     {
-      if(m_prev_acc == 0.0 && cur_acc==0.0 && cur_speed == 0.0 && dst_speed>CLOSE_TO_ZERO_SPEED_DIFF)
-         kick = KICK_PWM_CORRECTION;
+      if(m_prev_acc == 0.0 && cur_acc==0.0 && cur_speed == 0.0 && std::abs(m_dst_speed)>CLOSE_TO_ZERO_SPEED_DIFF)
+         kick = KICK_PWM_CORRECTION*kdirection;
     }
     else
     {
-      if(cur_acc>CLOSE_TO_ZERO_ACCELERATION && (cur_speed-dst_speed)>BREAK_MAX_SPEED_DIFF_WITH_ACCELERATION || (cur_speed-dst_speed)>BREAK_MAX_SPEED_DIFF)
+      if(cur_acc*kdirection>CLOSE_TO_ZERO_ACCELERATION && (cur_speed-m_dst_speed)*kdirection>BREAK_MAX_SPEED_DIFF_WITH_ACCELERATION || (cur_speed-m_dst_speed)*kdirection>BREAK_MAX_SPEED_DIFF)
       {
         is_brake=true;
-        res -= BREAK_PWM_CORRECTION;
+        res -= BREAK_PWM_CORRECTION*kdirection;
       }
     }
 
-    res = constrain(res, 0.0, 1.0);
+    res = constrain(res, -1.0, 1.0);
     
 
     // Serial.print(" dst_sp=");
@@ -147,7 +171,7 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
   m_prev_pwm = res;
 
   res += kick;
-  res = constrain(res, 0.0, 1.0);
+  res = constrain(res, -1.0, 1.0);
   
   return  res;
 }
