@@ -3,6 +3,7 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+.idea
 __pycache__
 .ipynb_checkpoints
 ffmpeg.exe

@@ -21,6 +21,7 @@ class BaseState:
     rectangle_cap = "Select rectangle"
     click_cap = "Select tracker"
     rectangle_color = image.Color.from_rgb(255, 0, 0)
+    info_color = image.Color.from_rgb(0, 128, 0)
 
     def __init__(self):
         self.buttons = []
@@ -42,6 +43,7 @@ class BaseState:
             img.draw_string(2, 4, self.click_cap,
                             self.rectangle_color, 1.5)
 
+        self.draw_voltage(img)
         self.draw_buttons(img)
 
         return img
@@ -84,6 +86,11 @@ class BaseState:
                 return btn
 
         return None
+
+    def draw_voltage(self, img: image.Image):
+        voltage_str = f"{mover.voltage:.1f}V"
+        font_size = image.string_size(voltage_str, font="sans")
+        img.draw_string(img.width() - int(font_size[0]*0.75), 4, voltage_str, self.info_color, 0.75, font="sans")
 
     def draw_buttons(self, img: image.Image):
         indent = 8

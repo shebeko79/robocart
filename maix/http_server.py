@@ -335,6 +335,7 @@ def get_current_state():
         cur_state['accept_rectangle'] = st.accept_rectangle
         cur_state['rectangle_cap'] = st.rectangle_cap
         cur_state['click_cap'] = st.click_cap
+        cur_state['voltage'] = mover.voltage
 
         buttons = []
         for b in st.buttons:
