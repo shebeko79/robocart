@@ -200,7 +200,7 @@ bool processStateCommand(const char* buf, String& answer_params)
   float v = getVCCVoltage();
   float l = leftMotor.get_speed_meters();
   float r = rightMotor.get_speed_meters();
-  answer_params =";"+String(v)+";"+String(l)+";"+String(r)+";"+String((int)auto_cmd_blocked);
+  answer_params =":"+String(v)+";"+String(l)+";"+String(r)+";"+String((int)auto_cmd_blocked);
 
   return true;
 }
