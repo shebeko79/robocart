@@ -8,6 +8,7 @@ import states
 from track_utils import CAM_SIZE
 import http_server
 import touch_process
+import telegram
 
 
 cam: camera.Camera = None
@@ -59,12 +60,13 @@ def main_cycle():
 
         touch_process.process(st, img)
         http_server.process()
+        telegram.process()
 
         if track_utils.SLEEP_IDLE_TIMEOUT > 0:
             last_request = max(touch_process.last_request_time, http_server.last_request_time)
             cur_time = time.time_s()
-            if last_request + track_utils.SLEEP_IDLE_TIMEOUT < cur_time:
-                mover.go_to_sleep(track_utils.SLEEP_DELAY)
+            if last_request > 1700000000 and last_request + track_utils.SLEEP_IDLE_TIMEOUT < cur_time:
+                mover.go_to_sleep(track_utils.SLEEP_DURATION)
 
     pan_tilt.shutdown()
     http_server.shutdown()

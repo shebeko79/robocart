@@ -4,7 +4,7 @@ FOCAL_DIST = CAM_SIZE[1]*2.8
 BASE_PATH = "/root/robot"
 
 SLEEP_IDLE_TIMEOUT = 5*60  # timeout before module got to sleep mode. If zero module will not go to sleep
-SLEEP_DELAY = 30*60  # how long module sleeping
+SLEEP_DURATION = 30*60  # how long module sleeping
 
 
 def make_rect(pt1, pt2):

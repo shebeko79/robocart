@@ -1,0 +1,136 @@
+from maix import time
+import telegram_bot
+import requests
+import track_utils
+import json
+import mover
+
+telegramUpdateId = 0
+lastUpdateTime = 0
+
+DEVICE_NAME = 'robocart'
+COMMAND_UPDATE_DELAY = 300
+
+
+def send_message(message):
+    req = f'https://api.telegram.org/{telegram_bot.ID}/sendMessage?chat_id={telegram_bot.CHAT_ID}&text={message}'
+    res = requests.get(req)
+
+    print(res.text)
+
+
+def get_updates():
+    global telegramUpdateId
+
+    req = f'https://api.telegram.org/{telegram_bot.ID}/getUpdates?allowed_updates=message&limit=10&offset={telegramUpdateId+1}'
+    res = requests.get(req)
+    res = json.loads(res.text)
+    if 'ok' not in res or not res['ok']:
+        return None
+
+    if 'result' not in res:
+        return None
+
+    res = res['result']
+
+    for r in res:
+        if 'update_id' in r:
+            telegramUpdateId = r['update_id']
+
+    return res
+
+
+def get_commands():
+    cmds = []
+
+    res = get_updates()
+    if res is None:
+        return cmds
+
+    for r in res:
+        if 'message' not in r:
+            continue
+
+        msg = r['message']
+
+        if 'text' not in msg:
+            continue
+
+        txt = msg['text']
+
+        chunks = txt.split(":", 4)
+        if len(chunks) < 3:
+            continue
+
+        if chunks[0] != 'cmd' or chunks[1] != DEVICE_NAME:
+            continue
+
+        c = {'name': chunks[2], 'params': []}
+
+        if len(chunks) == 4:
+            c['params'] = chunks[3].split(";")
+
+        cmds.append(c)
+
+    return cmds
+
+
+def answer_command(cmd, status, params = None):
+    cmd_name = cmd['name']
+    msg = f'{status}:{cmd_name}:{DEVICE_NAME}'
+
+    if params is not None:
+        msg += ':' + ";".join(params)
+
+    send_message(msg)
+
+
+def process_sleep(cmd):
+    params = cmd['params']
+    if len(params) < 1:
+        return
+
+    idle = int(params[0])
+
+    if len(params) >= 2:
+        track_utils.SLEEP_DURATION = int(params[1])
+
+    track_utils.SLEEP_IDLE_TIMEOUT = idle
+
+
+def process_state(cmd):
+    params = [f"{mover.voltage:.1f}"]
+    return params
+
+
+def process():
+    global lastUpdateTime
+
+    cur_time = time.time_s()
+    if cur_time < lastUpdateTime + COMMAND_UPDATE_DELAY:
+        return
+
+    lastUpdateTime = cur_time
+
+    try:
+        cmds = get_commands()
+    except Exception as e:
+        print(e)
+        return
+
+    response_params = None
+
+    for cmd in cmds:
+        cmd_name = cmd['name']
+        try:
+            if cmd_name == 'set_sleep':
+                process_sleep(cmd)
+            elif cmd_name == 'state':
+                response_params = process_state(cmd)
+            else:
+                answer_command(cmd, "unknown")
+                continue
+
+            answer_command(cmd, "accept", response_params)
+        except Exception as e:
+            print(e)
