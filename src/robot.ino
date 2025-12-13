@@ -210,7 +210,7 @@ bool processSleepCommand(const char* buf)
   if(buf[0] == 0)
     return false;
 
-  float seconds = atof(buf);
+  int seconds = atoi(buf);
   if(seconds<=0.0)
     return false;
   

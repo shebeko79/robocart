@@ -28,7 +28,7 @@ constexpr unsigned TIMER_MS=10;
 
 constexpr float POWER_OFF_VOLTAGE = 21.0; //Volts
 constexpr float POWER_ON_VOLTAGE = 22.0; //Volts
-constexpr unsigned long DEEP_SLEEP_DURATION = 60; //Seconds
+constexpr unsigned long DEEP_SLEEP_DURATION = 5*60; //Seconds
 constexpr unsigned long LOW_VOLTAGE_SLEEP_DELAY = 5000; //Milliseconds. Delay before go sleep on low voltage
 constexpr float VCC_REF_ADC1=1333.0; //Reference ADC value point 1
 constexpr float VCC_REF_V1=25.0; //Reference voltage point 1
