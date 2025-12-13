@@ -1,4 +1,4 @@
-from maix import touchscreen
+from maix import touchscreen, time
 import states
 import track_utils
 
@@ -9,6 +9,8 @@ touched = False
 touch_pt = None
 disp_width = 0
 disp_height = 0
+
+last_request_time = time.time_s()
 
 
 def init(disp):
@@ -47,6 +49,10 @@ def process(st: states.BaseState, img):
     global touch_pt
     global disp_width
     global disp_height
+    global last_request_time
+
+    if touched:
+        last_request_time = time.time_s()
 
     if touched and not prev_touched:
         btn = st.hit_test(touch_pt)

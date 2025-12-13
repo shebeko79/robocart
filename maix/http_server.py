@@ -1,4 +1,4 @@
-from maix import image
+from maix import image, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
 from pathlib import Path
@@ -9,6 +9,8 @@ import states
 import json
 import track_utils
 import tracker
+
+last_request_time = time.time_s()
 
 
 class Server(HTTPServer):
@@ -293,9 +295,11 @@ def process():
     global delay_call
     global delay_result
     global main_th_condition
+    global last_request_time
 
     with main_th_condition:
         if delay_call:
+            last_request_time = time.time_s()
             func, args, kwargs = delay_call
             try:
                 delay_result = func(*args, **kwargs)

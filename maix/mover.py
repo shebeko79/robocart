@@ -6,6 +6,7 @@ serial: uart.UART = None
 CAR_NAME = "rccar"
 DRIVE_CMD_STR = "cmd:"+CAR_NAME+":drive:{};{}\r"
 STATE_CMD_STR = "cmd:"+CAR_NAME+":state\r"
+SLEEP_CMD_STR = "cmd:"+CAR_NAME+":sleep:{}\r"
 
 STATE_REQUEST_PERIOD = 5
 last_state_request = 0
@@ -67,6 +68,12 @@ def send_state_request():
 
     serial.write_str(STATE_CMD_STR)
     last_state_request = cur_time
+
+
+def go_to_sleep(seconds):
+    cmd = SLEEP_CMD_STR.format(seconds)
+    #print(cmd)
+    serial.write_str(cmd)
 
 
 def parse_commands():

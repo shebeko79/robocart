@@ -1,8 +1,9 @@
-from maix import camera, image, display, app
+from maix import camera, image, display, app, time
 import mover
 import algos
 import pan_tilt
 import tracker
+import track_utils
 import states
 from track_utils import CAM_SIZE
 import http_server
@@ -58,6 +59,12 @@ def main_cycle():
 
         touch_process.process(st, img)
         http_server.process()
+
+        if track_utils.SLEEP_IDLE_TIMEOUT > 0:
+            last_request = max(touch_process.last_request_time, http_server.last_request_time)
+            cur_time = time.time_s()
+            if last_request + track_utils.SLEEP_IDLE_TIMEOUT < cur_time:
+                mover.go_to_sleep(track_utils.SLEEP_DELAY)
 
     pan_tilt.shutdown()
     http_server.shutdown()
