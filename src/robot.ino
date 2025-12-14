@@ -214,6 +214,13 @@ bool processSleepCommand(const char* buf)
   if(seconds<=0.0)
     return false;
   
+  leftWheel.set_speed(0);
+  rightWheel.set_speed(0);
+  leftMotor.brake();
+  rightMotor.brake();
+  allOtherPinsToInputState();
+  delay(2000);
+  
   goToSleepMode(seconds);
 
   return true;

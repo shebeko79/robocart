@@ -8,6 +8,7 @@ SLEEP_DURATION = 30*60  # how long module sleeping
 
 last_request_time = 0
 
+
 def make_rect(pt1, pt2):
     x1 = min(pt1[0], pt2[0])
     y1 = min(pt1[1], pt2[1])

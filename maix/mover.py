@@ -1,4 +1,6 @@
 from maix import app, uart, time
+import os
+import subprocess
 
 DEVICE_NAME = "/dev/ttyS0"
 serial: uart.UART = None
@@ -72,8 +74,9 @@ def send_state_request():
 
 def go_to_sleep(seconds):
     cmd = SLEEP_CMD_STR.format(seconds)
-    #print(cmd)
+    os.sync()
     serial.write_str(cmd)
+    subprocess.run(["/sbin/poweroff"])
 
 
 def parse_commands():

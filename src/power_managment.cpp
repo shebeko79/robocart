@@ -71,6 +71,7 @@ float getVCCVoltage()
 
 void goToSleepMode(int seconds_to_sleep)
 {
+  allOtherPinsToInputState();
   enablePowerModules(false);
 
   esp_sleep_enable_timer_wakeup(seconds_to_sleep * 1000000ULL);
