@@ -13,7 +13,9 @@ lastUpdateTime = 0
 coolDownCount = 10
 
 DEVICE_NAME = 'robocart'
-COMMAND_UPDATE_DELAY = 300
+MAX_COMMAND_UPDATE_DELAY = 300
+MIN_COMMAND_UPDATE_DELAY = 10
+commandUpdateDelay = MAX_COMMAND_UPDATE_DELAY
 
 
 def init():
@@ -155,13 +157,16 @@ def process_image(cmd, img):
 def process(img):
     global lastUpdateTime
     global coolDownCount
+    global commandUpdateDelay
+    global MAX_COMMAND_UPDATE_DELAY
+    global MIN_COMMAND_UPDATE_DELAY
 
     if coolDownCount > 0:
         coolDownCount -= 1
         return
 
     cur_time = time.time_s()
-    if cur_time < lastUpdateTime + COMMAND_UPDATE_DELAY:
+    if cur_time < lastUpdateTime + commandUpdateDelay:
         return
 
     lastUpdateTime = cur_time
@@ -170,6 +175,12 @@ def process(img):
         cmds = get_commands()
     except Exception as e:
         print(e)
+        return
+
+    if len(cmds) == 0:
+        commandUpdateDelay *= 2
+        if commandUpdateDelay > MAX_COMMAND_UPDATE_DELAY:
+            commandUpdateDelay = MAX_COMMAND_UPDATE_DELAY
         return
 
     response_params = None
@@ -188,5 +199,6 @@ def process(img):
                 continue
 
             answer_command(cmd, "accept", response_params)
+            commandUpdateDelay = MIN_COMMAND_UPDATE_DELAY
         except Exception as e:
             print(e)
