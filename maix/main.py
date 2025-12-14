@@ -19,6 +19,7 @@ def main_init():
     global cam
     global disp
 
+    track_utils.init()
     cam = camera.Camera(CAM_SIZE[0], CAM_SIZE[1], tracker.get_camera_format())
     disp = display.Display()
     touch_process.init(disp)
@@ -32,6 +33,7 @@ def main_init():
     states.set_state(states.MainState.state_name)
 
     http_server.init()
+    telegram.init()
 
 
 def main_cycle():
@@ -68,6 +70,7 @@ def main_cycle():
                 track_utils.last_request_time = cur_time
 
             if track_utils.last_request_time + track_utils.SLEEP_IDLE_TIMEOUT < cur_time:
+                telegram.save_update_id()
                 mover.go_to_sleep(track_utils.SLEEP_DURATION)
 
     pan_tilt.shutdown()

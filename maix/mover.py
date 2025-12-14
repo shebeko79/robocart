@@ -1,4 +1,4 @@
-from maix import app, uart, time
+from maix import uart, time
 import os
 import subprocess
 

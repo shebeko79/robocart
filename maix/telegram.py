@@ -4,12 +4,33 @@ import requests
 import track_utils
 import json
 import mover
+import os
 
 telegramUpdateId = 0
 lastUpdateTime = 0
 
 DEVICE_NAME = 'robocart'
 COMMAND_UPDATE_DELAY = 300
+
+
+def init():
+    global telegramUpdateId
+
+    file_path = track_utils.CFG_PATH+"/telegram_update_id.txt"
+
+    if not os.path.isfile(file_path):
+        return
+
+    with open(file_path, 'r') as file:
+        telegramUpdateId = int(file.read())
+
+
+def save_update_id():
+    global telegramUpdateId
+
+    file_path = track_utils.CFG_PATH + "/telegram_update_id.txt"
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(str(telegramUpdateId))
 
 
 def send_message(message):
@@ -96,6 +117,7 @@ def process_sleep(cmd):
         track_utils.SLEEP_DURATION = int(params[1])
 
     track_utils.SLEEP_IDLE_TIMEOUT = idle
+    track_utils.save_cfg()
 
 
 def process_state(cmd):
