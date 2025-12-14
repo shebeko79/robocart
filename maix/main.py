@@ -62,7 +62,7 @@ def main_cycle():
 
         touch_process.process(st, img)
         http_server.process()
-        telegram.process()
+        telegram.process(img)
 
         if track_utils.SLEEP_IDLE_TIMEOUT > 0:
             cur_time = time.time_s()

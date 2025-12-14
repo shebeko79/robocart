@@ -1,6 +1,7 @@
 from maix import time
 import telegram_bot
 import requests
+import tracker
 import track_utils
 import json
 import mover
@@ -36,8 +37,7 @@ def save_update_id():
 def send_message(message):
     req = f'https://api.telegram.org/{telegram_bot.ID}/sendMessage?chat_id={telegram_bot.CHAT_ID}&text={message}'
     res = requests.get(req)
-
-    print(res.text)
+    # print(res.text)
 
 
 def get_updates():
@@ -125,7 +125,32 @@ def process_state(cmd):
     return params
 
 
-def process():
+def process_image(cmd, img):
+    send_img = img.copy()
+    tracker.draw_trackers(send_img)
+
+    if not send_img:
+        return
+
+    jpg = send_img.to_jpeg()
+    if not jpg:
+        return
+
+    bts = jpg.to_bytes()
+    file_path = track_utils.CFG_PATH+"/screenshot.jpg"
+    with open(file_path, "wb") as f:
+        f.write(bts)
+
+    bts = None
+
+    with open(file_path, "rb") as f:
+        url = f'https://api.telegram.org/{telegram_bot.ID}/sendPhoto'
+        params = {'chat_id': telegram_bot.CHAT_ID}
+        files = {'photo': f}
+        response = requests.post(url, params, files=files)
+
+
+def process(img):
     global lastUpdateTime
 
     cur_time = time.time_s()
@@ -149,6 +174,8 @@ def process():
                 process_sleep(cmd)
             elif cmd_name == 'state':
                 response_params = process_state(cmd)
+            elif cmd_name == 'image':
+                process_image(cmd, img)
             else:
                 answer_command(cmd, "unknown")
                 continue
