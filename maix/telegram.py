@@ -10,6 +10,8 @@ import os
 telegramUpdateId = 0
 lastUpdateTime = 0
 
+coolDownCount = 10
+
 DEVICE_NAME = 'robocart'
 COMMAND_UPDATE_DELAY = 300
 
@@ -152,6 +154,11 @@ def process_image(cmd, img):
 
 def process(img):
     global lastUpdateTime
+    global coolDownCount
+
+    if coolDownCount > 0:
+        coolDownCount -= 1
+        return
 
     cur_time = time.time_s()
     if cur_time < lastUpdateTime + COMMAND_UPDATE_DELAY:
