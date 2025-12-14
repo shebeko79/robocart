@@ -63,9 +63,11 @@ def main_cycle():
         telegram.process()
 
         if track_utils.SLEEP_IDLE_TIMEOUT > 0:
-            last_request = max(touch_process.last_request_time, http_server.last_request_time)
             cur_time = time.time_s()
-            if last_request > 1700000000 and last_request + track_utils.SLEEP_IDLE_TIMEOUT < cur_time:
+            if track_utils.last_request_time < 1700000000:
+                track_utils.last_request_time = cur_time
+
+            if track_utils.last_request_time + track_utils.SLEEP_IDLE_TIMEOUT < cur_time:
                 mover.go_to_sleep(track_utils.SLEEP_DURATION)
 
     pan_tilt.shutdown()
