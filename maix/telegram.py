@@ -202,5 +202,6 @@ def process(img):
 
             answer_command(cmd, "accept", response_params)
             commandUpdateDelay = MIN_COMMAND_UPDATE_DELAY
+            track_utils.last_request_time = time.time_s()
         except Exception as e:
             print(e)
