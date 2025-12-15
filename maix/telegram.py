@@ -78,11 +78,13 @@ def get_commands():
 
         msg = r['message']
 
+        if ('chat' not in msg) or ('id' not in msg['chat']) or msg['chat']['id'] != telegram_bot.CHAT_ID:
+            continue
+
         if 'text' not in msg:
             continue
 
         txt = msg['text']
-
         chunks = txt.split(":", 4)
         if len(chunks) < 3:
             continue
