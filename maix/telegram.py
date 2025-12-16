@@ -185,9 +185,8 @@ def process(img):
             commandUpdateDelay = MAX_COMMAND_UPDATE_DELAY
         return
 
-    response_params = None
-
     for cmd in cmds:
+        response_params = None
         cmd_name = cmd['name']
         try:
             if cmd_name == 'set_sleep':
