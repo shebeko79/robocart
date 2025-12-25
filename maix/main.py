@@ -9,15 +9,19 @@ from track_utils import CAM_SIZE
 import http_server
 import touch_process
 import telegram
+import udp_server
+import socket
 
 
 cam: camera.Camera = None
 disp: display.Display = None
+udp_serv: udp_server.UdpServer = None
 
 
 def main_init():
     global cam
     global disp
+    global udp_serv
 
     track_utils.init()
     cam = camera.Camera(CAM_SIZE[0], CAM_SIZE[1], tracker.get_camera_format())
@@ -34,6 +38,10 @@ def main_init():
 
     http_server.init()
     telegram.init()
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('0.0.0.0', udp_server.UDP_PORT))
+    udp_serv = udp_server.UdpServer(sock)
 
 
 def main_cycle():
@@ -62,6 +70,7 @@ def main_cycle():
 
         touch_process.process(st, img)
         http_server.process()
+        udp_serv.process(img)
         telegram.process(img)
 
         if track_utils.SLEEP_IDLE_TIMEOUT > 0:
