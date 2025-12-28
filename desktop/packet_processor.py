@@ -1,9 +1,9 @@
 import struct
 import json
-from enum import Enum
+from enum import IntEnum
 
 
-class PacketType(Enum):
+class PacketType(IntEnum):
     JSON = 0,
     JPG = 1
 
@@ -30,17 +30,20 @@ class PacketProcessor:
                 break
             fit_it += 1
 
-        ret = struct.pack("!H", len(self.send_packet_number))
+        ret = struct.pack("!H", self.send_packet_number)
 
         for i in range(0, fit_it):
             ret += self.packets[i]
 
-        self.packets = self.packets[i:]
+        self.packets = self.packets[fit_it:]
         return ret
 
     @staticmethod
-    def pack_chunk(data, tp):
-        return struct.pack("!H", len(data)) + struct.pack("!B", tp) + data
+    def pack_chunk(data, tp: PacketType):
+        ret = struct.pack("!H", len(data))
+        ret += struct.pack("!B", tp)
+        ret += data
+        return ret
 
     def pack_json(self, js) -> bytes:
         return self.pack_chunk(json.dumps(js).encode('utf-8'), PacketType.JSON)
@@ -51,14 +54,14 @@ class PacketProcessor:
         if total_len < 2:
             return None
 
-        packet_number = struct.unpack("!H", packet[0:2])
+        packet_number, = struct.unpack("!H", packet[0:2])
         i = 2
 
         while i < total_len:
             if i + 3 > total_len:
                 return None
 
-            chunk_len = struct.unpack("!H", packet[i:i+2])
+            chunk_len, = struct.unpack("!H", packet[i:i+2])
             next_i = i+3+chunk_len
             if next_i > total_len:
                 return None
@@ -71,7 +74,7 @@ class PacketProcessor:
         i = 2
 
         while i+4 <= total_len:
-            chunk_len = struct.unpack("!H", packet[i:i+2])
+            chunk_len, = struct.unpack("!H", packet[i:i+2])
             next_i = i+3+chunk_len
             if next_i > total_len:
                 break

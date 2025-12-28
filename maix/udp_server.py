@@ -1,5 +1,5 @@
 from maix import image, time
-from lib.packet_processor import PacketProcessor, PacketType
+from packet_processor import PacketProcessor, PacketType
 import socket
 import select
 
@@ -17,6 +17,7 @@ class UdpServer(PacketProcessor):
         super().__init__()
         self.img: image.Image = None
         self.require_state_answer = False
+        self.jpeg_quality = 50
 
         self.sock = sock
         self.sock.setblocking(False)
@@ -78,8 +79,9 @@ class UdpServer(PacketProcessor):
 
             is_ready_to_send = len(sel[1]) > 0
 
-        if img is not None and is_ready_to_send and len(self.packets) == 0:
-            bts = self.pack_img(img)
+        self.img = img
+        if self.img is not None and is_ready_to_send and len(self.packets) == 0:
+            bts = self.pack_img()
             if bts is not None:
                 self.packets.append(bts)
 
@@ -102,9 +104,20 @@ class UdpServer(PacketProcessor):
 
         tracker.draw_trackers(img)
 
-        jpg = img.to_jpeg()
+        jpg = img.to_jpeg(self.jpeg_quality)
         if not jpg:
             return
+
+        bts = jpg.to_bytes()
+        if len(bts) > self.MAX_CHUNK_SIZE:
+            self.jpeg_quality -= 5
+            if self.jpeg_quality < 5:
+                self.jpeg_quality = 5
+            return
+        elif len(bts) < self.MAX_CHUNK_SIZE*0.8:
+            self.jpeg_quality += 5
+            if self.jpeg_quality > 95:
+                self.jpeg_quality = 95
 
         return self.pack_chunk(jpg.to_bytes(), PacketType.JPG)
 
