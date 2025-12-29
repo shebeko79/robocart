@@ -10,7 +10,8 @@ from udp_client import UdpReceiver
 
 class MainWindow(QMainWindow):
 
-    packet_received = pyqtSignal(bytes)
+    json_received = pyqtSignal(object)
+    jpeg_received = pyqtSignal(bytes)
 
     def __init__(self):
         super().__init__()
@@ -30,10 +31,13 @@ class MainWindow(QMainWindow):
         self.setGeometry(50, 50, 1200, 800)
         self.setWindowTitle('Control application')
 
-        self.packet_received.connect(self.on_packet_received)
+        self.json_received.connect(self.on_json_received)
+        self.jpeg_received.connect(self.on_jpeg_received)
 
-        self.udp = UdpReceiver(self.host_name, self.udp_port, self.packet_received)
+        self.udp = UdpReceiver(self.host_name, self.udp_port, self.json_received, self.jpeg_received)
         self.udp.start()
+
+        self.size_fixed = False
 
     def init_status_bar(self):
         self.ConnectionLabel = QLabel('      ')
@@ -51,9 +55,6 @@ class MainWindow(QMainWindow):
         widget.layout().addStretch(1)
         statusbar.addWidget(widget, 1)
 
-    def fit_size(self):
-        self.setFixedSize(self.layout().sizeHint())
-
     def closeEvent(self, ev):
         ev.accept()
 
@@ -70,8 +71,14 @@ class MainWindow(QMainWindow):
         self.host_name = config_dict["host_name"]
         self.udp_port = config_dict["udp_port"]
 
-    def on_packet_received(self, data):
-        print(f"on_packet_received(): {len(data)=}")
+    def on_json_received(self, js):
+        print(f"on_packet_received(): {js=}")
+
+    def on_jpeg_received(self, data):
+        self.mainWidget.set_image(data)
+        if not self.size_fixed:
+            self.setFixedSize(self.layout().sizeHint())
+            self.size_fixed = True
 
 
 if __name__ == '__main__':

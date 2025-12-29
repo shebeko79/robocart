@@ -4,11 +4,12 @@ from packet_processor import PacketProcessor
 
 
 class UdpReceiver(PacketProcessor):
-    def __init__(self, host_name, port, sig):
+    def __init__(self, host_name, port, json_sig, jpeg_sig):
         super().__init__()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.addr = (socket.gethostbyname(host_name), port)
-        self.sig = sig
+        self.json_sig = json_sig
+        self.jpeg_sig = jpeg_sig
         self.packets.append(self.pack_json({}))
         self.do_send()
 
@@ -20,18 +21,19 @@ class UdpReceiver(PacketProcessor):
         if bts is None:
             return
 
-        print(bts)
         self.sock.sendto(bts, self.addr)
 
     def _loop(self):
 
         while True:
-            print("loop1")
             data, addr = self.sock.recvfrom(65536)
-            print("loop2")
             if addr != self.addr:
                 continue
 
-            print(f"_loop(): {len(data)=}")
+            self.parse(data)
 
-            self.sig.emit(data)
+    def process_json(self, js):
+        self.json_sig.emit(js)
+
+    def process_jpeg(self, bts):
+        self.jpeg_sig.emit(bts)

@@ -104,19 +104,8 @@ class MainWidget(QWidget):
     def fire_cart_right(self):
         pass
 
-    def setCurrentImage(self):
-        '''
-        img_file = self.images[self.cur_image]
-        filename, ext = os.path.splitext(img_file)
-
-        img_file = os.path.join(self.directory, "images/"+img_file)
-
-        self.app.fileName.setText(filename)
-        self.app.progress.setText(str(self.cur_image)+'/'+str(len(self.images)))
-
-        self.image.init(img_file)
-        '''
-        self.app.fitSize()
+    def set_image(self, jpg):
+        self.image.init(jpg)
 
     def keyPressEvent(self, e):
         k = e.key()
@@ -162,9 +151,6 @@ class ImageWidget(QWidget):
         self.screen_height = QDesktopWidget().screenGeometry().height()
         self.modified = False
 
-        self.init_ui()
-
-    def init_ui(self):
         self.pixmap = QPixmap()
         self.image = QLabel()
         self.image.setObjectName("image")
@@ -175,15 +161,10 @@ class ImageWidget(QWidget):
         hbox = QHBoxLayout(self.image)
         self.setLayout(hbox)
 
-    def init(self, img_file, txt_file):
-        self.setPixmap(img_file)
-        self.txt_file = txt_file
-        self.pixmap = self.drawResultBox()
-        self.update()
-
-    def setPixmap(self, image_fn):
-        self.pixmap = QPixmap(image_fn)
+    def init(self, jpeg_data):
+        self.pixmap.loadFromData(jpeg_data,"JPEG")
         self.W, self.H = self.pixmap.width(), self.pixmap.height()
+        print(f'{self.W=} {self.H=}')
 
         if self.H > self.screen_height * 0.8:
             resize_ratio = (self.screen_height * 0.8) / self.H
@@ -194,6 +175,9 @@ class ImageWidget(QWidget):
 
         self.setFixedSize(self.W, self.H)
         self.pixmapOriginal = QPixmap.copy(self.pixmap)
+
+        #self.pixmap = self.drawResultBox()
+        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
