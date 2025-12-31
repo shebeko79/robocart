@@ -5,7 +5,8 @@ from enum import IntEnum
 
 class PacketType(IntEnum):
     JSON = 0,
-    JPG = 1
+    JPG = 1,
+    ACK = 2
 
 
 class PacketProcessor:
@@ -19,8 +20,7 @@ class PacketProcessor:
         if len(self.packets) == 0:
             return
 
-        self.send_packet_number += 1
-        self.send_packet_number %= 65536
+        self.send_packet_number = self.get_next_packet_number()
 
         fit_it = 0
         sz = 0
@@ -38,6 +38,11 @@ class PacketProcessor:
         self.packets = self.packets[fit_it:]
         return ret
 
+    def get_next_packet_number(self):
+        ret = self.send_packet_number + 1
+        ret %= 65536
+        return ret
+
     @staticmethod
     def pack_chunk(data, tp: PacketType):
         ret = struct.pack("!H", len(data))
@@ -47,6 +52,11 @@ class PacketProcessor:
 
     def pack_json(self, js) -> bytes:
         return self.pack_chunk(json.dumps(js).encode('utf-8'), PacketType.JSON)
+
+    def pack_ack(self, received_packet_number) -> bytes:
+        bts = struct.pack("!H", received_packet_number)
+        return self.pack_chunk(bts, PacketType.ACK)
+
 
     @staticmethod
     def get_packet_number(packet: bytes):
@@ -88,6 +98,10 @@ class PacketProcessor:
                     self.process_json(js)
                 elif chunk_type == PacketType.JPG:
                     self.process_jpeg(chunk)
+                elif chunk_type == PacketType.ACK:
+                    ack_packet_number, = struct.unpack("!H", chunk)
+                    self.process_ack(ack_packet_number)
+
             except Exception as e:
                 print(e)
 
@@ -97,4 +111,7 @@ class PacketProcessor:
         pass
 
     def process_jpeg(self, bts):
+        pass
+
+    def process_ack(self, ack_packet_number):
         pass

@@ -10,6 +10,7 @@ import track_utils
 import tracker
 
 UDP_PORT = 5005
+IMG_NO_ACK_TIMEOUT = 500
 
 
 class UdpServer(PacketProcessor):
@@ -23,6 +24,11 @@ class UdpServer(PacketProcessor):
         self.sock.setblocking(False)
         self.last_received_addr = None
         self.last_received_packet_number = 0
+
+        self.last_ack_packet_number = 0
+
+        self.last_image_packet = 0
+        self.last_image_send_time = time.time_ms()
 
     def process(self, img):
         self.do_receive()
@@ -50,6 +56,7 @@ class UdpServer(PacketProcessor):
                 not (pack_n < 64 and self.last_received_packet_number > 65536-64):
             return
 
+        self.last_received_packet_number = pack_n
         self.parse(data)
 
     def do_send(self, img):
@@ -79,10 +86,18 @@ class UdpServer(PacketProcessor):
 
             is_ready_to_send = len(sel[1]) > 0
 
+        tm = time.time_ms()
         self.img = img
-        if self.img is not None and is_ready_to_send and len(self.packets) == 0:
+        is_send_image = self.img is not None and is_ready_to_send and len(self.packets) == 0 and\
+                        (self.last_ack_packet_number == self.last_image_packet or
+                         tm >= self.last_image_send_time + IMG_NO_ACK_TIMEOUT)
+
+        print(f'{is_send_image}: {is_ready_to_send=} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=}')
+        if is_send_image:
             bts = self.pack_img()
             if bts is not None:
+                self.last_image_packet = self.get_next_packet_number()
+                self.last_image_send_time = tm
                 self.packets.append(bts)
 
         if self.require_state_answer:
@@ -139,6 +154,10 @@ class UdpServer(PacketProcessor):
             cur_state['buttons'] = buttons
 
         return self.pack_json(cur_state)
+
+    def process_ack(self, ack_packet_number):
+        self.last_ack_packet_number = ack_packet_number
+        pass
 
     def process_json(self, js):
         if 'cmd' not in js:
