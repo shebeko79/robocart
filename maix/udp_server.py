@@ -101,11 +101,13 @@ class UdpServer(PacketProcessor):
                 self.packets.append(bts)
 
         if self.require_state_answer:
+            self.require_state_answer = False
+
             bts = self.pack_state()
             if bts is not None:
                 self.packets.append(bts)
 
-        if len(self.packets) > 0:
+        if is_ready_to_send and len(self.packets) > 0:
             bts = self.pack()
             self.sock.sendto(bts, self.last_received_addr)
 

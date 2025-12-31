@@ -1,16 +1,14 @@
-import sys
-import os
-import cv2
-import json
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QGroupBox
 from PyQt5.QtWidgets import QDesktopWidget, QMessageBox, QPushButton
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QColor, QPen, QFont
 from PyQt5.QtCore import QRect, QPoint
-import packet_processor
+import math
 
 
 class MainWidget(QWidget):
+    CAM_ANG = 5 / 180 * math.pi
+
     def __init__(self, application):
         super(MainWidget, self).__init__(application)
         self.app = application
@@ -22,8 +20,8 @@ class MainWidget(QWidget):
         self.camLeftBtn = QPushButton('<', self)
         self.camRightBtn = QPushButton('>', self)
 
-        self.cartUpBtn = QPushButton('^', self)
-        self.cartDownBtn = QPushButton('v', self)
+        self.cartForwardBtn = QPushButton('^', self)
+        self.cartBackwardBtn = QPushButton('v', self)
         self.cartLeftBtn = QPushButton('<', self)
         self.cartRightBtn = QPushButton('>', self)
 
@@ -38,12 +36,12 @@ class MainWidget(QWidget):
         self.camUpBtn.clicked.connect(self.fire_cam_up)
         self.camDownBtn.clicked.connect(self.fire_cam_down)
         self.camLeftBtn.clicked.connect(self.fire_cam_left)
-        self.camRightBtn.clicked.connect(self.fire_cam_down)
+        self.camRightBtn.clicked.connect(self.fire_cam_right)
 
-        self.cartUpBtn.clicked.connect(self.fire_cam_up)
-        self.cartDownBtn.clicked.connect(self.fire_cam_down)
-        self.cartLeftBtn.clicked.connect(self.fire_cam_left)
-        self.cartRightBtn.clicked.connect(self.fire_cam_down)
+        self.cartForwardBtn.clicked.connect(self.fire_cart_forward)
+        self.cartBackwardBtn.clicked.connect(self.fire_cart_backward)
+        self.cartLeftBtn.clicked.connect(self.fire_cart_left)
+        self.cartRightBtn.clicked.connect(self.fire_cart_right)
 
         vlayout = QVBoxLayout()
         hlayout = QHBoxLayout()
@@ -65,13 +63,13 @@ class MainWidget(QWidget):
         vlayout = QVBoxLayout()
         hlayout = QHBoxLayout()
         hlayout.addStretch()
-        hlayout.addWidget(self.cartUpBtn)
+        hlayout.addWidget(self.cartForwardBtn)
         hlayout.addStretch()
         vlayout.addLayout(hlayout)
 
         hlayout = QHBoxLayout()
         hlayout.addWidget(self.cartLeftBtn)
-        hlayout.addWidget(self.cartDownBtn)
+        hlayout.addWidget(self.cartBackwardBtn)
         hlayout.addWidget(self.cartRightBtn)
         vlayout.addLayout(hlayout)
 
@@ -93,65 +91,64 @@ class MainWidget(QWidget):
         #self.firstButton.setEnabled(not_first_img)
         pass
 
+    def move_cam(self, pan, tilt):
+        js = {'cmd': 'move_cam', 'pan': pan, 'tilt': tilt}
+        self.app.udp.send_json(js)
+
+    def moveto_cam(self, pan, tilt):
+        js = {'cmd': 'moveto_cam', 'pan': pan, 'tilt': tilt}
+        self.app.udp.send_json(js)
+
+    def move_cart(self, speed, pan):
+        js = {'cmd': 'move', 'speed': speed, 'pan': pan}
+        self.app.udp.send_json(js)
+
     def fire_cam_up(self):
-        pass
+        self.move_cam(0, -self.CAM_ANG)
 
     def fire_cam_down(self):
-        pass
+        self.move_cam(0, self.CAM_ANG)
 
     def fire_cam_left(self):
-        pass
+        self.move_cam(-self.CAM_ANG, 0)
 
     def fire_cam_right(self):
-        pass
+        self.move_cam(self.CAM_ANG, 0)
 
-    def fire_cart_up(self):
-        pass
+    def fire_cart_forward(self):
+        self.move_cart(1.0, 0.0)
 
-    def fire_cart_down(self):
-        pass
+    def fire_cart_backward(self):
+        self.move_cart(-1.0, 0.0)
 
     def fire_cart_left(self):
-        pass
+        self.move_cart(0.0, -1.0)
 
     def fire_cart_right(self):
-        pass
+        self.move_cart(0.0, 1.0)
 
     def set_image(self, jpg):
         self.image.init(jpg)
 
     def keyPressEvent(self, e):
         k = e.key()
-        '''
-        if self.image.drawing:
-            if e.key() == Qt.Key_Escape:
-                self.image.resetDrawing()
-            return
 
-        if 0x30 <= e.key() <= 0x39:
-            idx = e.key()-0x30
-            if idx < self.classesCombo.count():
-                self.classesCombo.setCurrentIndex(idx)
-            self.image.markBox(idx)
-        if e.key() == Qt.Key_Escape:
-            self.image.removeLast()
-        elif e.key() == Qt.Key_Right:
-            self.nextImage()
-        elif e.key() == Qt.Key_Left:
-            self.prevImage()
-        elif e.key() == Qt.Key_Up:
-            sel_idx = self.classesCombo.currentIndex()
-            sel_idx -= 1
-            if sel_idx >= 0:
-                self.classesCombo.setCurrentIndex(sel_idx)
-                self.image.markBox(sel_idx)
-        elif e.key() == Qt.Key_Down:
-            sel_idx = self.classesCombo.currentIndex()
-            sel_idx += 1
-            if sel_idx < len(self.classes):
-                self.classesCombo.setCurrentIndex(sel_idx)
-                self.image.markBox(sel_idx)
-        '''
+        if k == Qt.Key_W:
+            self.fire_cam_up()
+        elif k == Qt.Key_S:
+            self.fire_cam_down()
+        elif k == Qt.Key_A:
+            self.fire_cam_left()
+        elif k == Qt.Key_D:
+            self.fire_cam_right()
+        elif k == Qt.Key_Right:
+            self.fire_cart_right()
+        elif k == Qt.Key_Left:
+            self.fire_cart_left()
+        elif k == Qt.Key_Up:
+            self.fire_cart_forward()
+        elif k == Qt.Key_Down:
+            self.fire_cart_backward()
 
 
 class ImageWidget(QWidget):

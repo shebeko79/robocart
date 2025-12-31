@@ -50,3 +50,12 @@ class UdpReceiver(PacketProcessor):
         self.jpeg_sig.emit(bts)
         self.packets.append(self.pack_ack(self.last_received_packet_number))
         self.do_send()
+
+    def send_json(self, js):
+        bts = self.pack_json(js)
+        if bts is None:
+            return
+
+        self.packets.append(bts)
+        self.do_send()
+
