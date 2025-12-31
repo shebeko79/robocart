@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
         self.init_status_bar()
 
         self.setGeometry(50, 50, 1200, 800)
-        self.setWindowTitle('Control application')
+        self.setWindowTitle('Robocart control')
 
         self.json_received.connect(self.on_json_received)
         self.jpeg_received.connect(self.on_jpeg_received)
@@ -52,8 +52,8 @@ class MainWindow(QMainWindow):
         widget.layout().addWidget(self.ConnectionLabel)
         widget.layout().addWidget(self.VoltageLabel)
         widget.layout().addWidget(self.StateLabel)
-        widget.layout().addStretch(1)
-        statusbar.addWidget(widget, 1)
+        widget.layout().addStretch()
+        statusbar.addWidget(widget)
 
     def closeEvent(self, ev):
         ev.accept()

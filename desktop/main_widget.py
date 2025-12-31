@@ -3,8 +3,7 @@ import os
 import cv2
 import json
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QComboBox
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QFileDialog, QLabel
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QGroupBox
 from PyQt5.QtWidgets import QDesktopWidget, QMessageBox, QPushButton
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QColor, QPen, QFont
 from PyQt5.QtCore import QRect, QPoint
@@ -46,29 +45,43 @@ class MainWidget(QWidget):
         self.cartLeftBtn.clicked.connect(self.fire_cam_left)
         self.cartRightBtn.clicked.connect(self.fire_cam_down)
 
-        cam_vlayout = QVBoxLayout()
-        cam_vlayout.addWidget(self.camUpBtn)
+        vlayout = QVBoxLayout()
+        hlayout = QHBoxLayout()
+        hlayout.addStretch()
+        hlayout.addWidget(self.camUpBtn)
+        hlayout.addStretch()
+        vlayout.addLayout(hlayout)
 
-        cam_hlayout = QHBoxLayout()
-        cam_hlayout.addWidget(self.camLeftBtn)
-        cam_hlayout.addWidget(self.camDownBtn)
-        cam_hlayout.addWidget(self.camRightBtn)
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.camLeftBtn)
+        hlayout.addWidget(self.camDownBtn)
+        hlayout.addWidget(self.camRightBtn)
+        vlayout.addLayout(hlayout)
 
-        cam_vlayout.addLayout(cam_hlayout)
+        camera_group_box = QGroupBox("Camera")
+        camera_group_box.setLayout(vlayout)
 
-        cart_vlayout = QVBoxLayout()
-        cart_vlayout.addWidget(self.cartUpBtn)
 
-        cart_hlayout = QHBoxLayout()
-        cart_hlayout.addWidget(self.cartLeftBtn)
-        cart_hlayout.addWidget(self.cartDownBtn)
-        cart_hlayout.addWidget(self.cartRightBtn)
+        vlayout = QVBoxLayout()
+        hlayout = QHBoxLayout()
+        hlayout.addStretch()
+        hlayout.addWidget(self.cartUpBtn)
+        hlayout.addStretch()
+        vlayout.addLayout(hlayout)
 
-        cart_vlayout.addLayout(cart_hlayout)
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.cartLeftBtn)
+        hlayout.addWidget(self.cartDownBtn)
+        hlayout.addWidget(self.cartRightBtn)
+        vlayout.addLayout(hlayout)
+
+        cart_group_box = QGroupBox("Cart")
+        cart_group_box.setLayout(vlayout)
 
         ctl_layout = QVBoxLayout()
-        ctl_layout.addLayout(cam_vlayout)
-        ctl_layout.addLayout(cart_vlayout)
+        ctl_layout.addWidget(camera_group_box)
+        ctl_layout.addWidget(cart_group_box)
+        ctl_layout.addStretch()
 
         main_layout = QHBoxLayout()
         main_layout.addWidget(self.image)
