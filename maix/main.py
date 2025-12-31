@@ -6,7 +6,7 @@ import tracker
 import track_utils
 import states
 from track_utils import CAM_SIZE
-import http_server
+#import http_server
 import touch_process
 import telegram
 import udp_server
@@ -36,7 +36,7 @@ def main_init():
     states.init()
     states.set_state(states.MainState.state_name)
 
-    http_server.init()
+    #http_server.init()
     telegram.init()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -62,14 +62,14 @@ def main_cycle():
         mover.process()
         touch_process.read()
 
-        http_server.last_img = img
+        #http_server.last_img = img
         disp_img = st.draw_screen(img, [disp.width(), disp.height()])
         touch_process.draw(disp_img)
 
         disp.show(disp_img)
 
         touch_process.process(st, img)
-        http_server.process()
+        #http_server.process()
         udp_serv.process(img)
         telegram.process(img)
 
@@ -83,7 +83,7 @@ def main_cycle():
                 mover.go_to_sleep(track_utils.SLEEP_DURATION)
 
     pan_tilt.shutdown()
-    http_server.shutdown()
+    #http_server.shutdown()
 
 
 if __name__ == "__main__":
