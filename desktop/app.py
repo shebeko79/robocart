@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.host_name = "maixcam-962b.local"
+        self.host_name = "robocart"
         self.udp_port = 5005
         self.load_config()
 
