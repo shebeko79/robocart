@@ -23,9 +23,9 @@ class MainWindow(QMainWindow):
         self.mainWidget = MainWidget(self)
         self.setCentralWidget(self.mainWidget)
 
-        self.ConnectionLabel = None
-        self.VoltageLabel = None
-        self.StateLabel = None
+        self.ConnectionLabel = QLabel('Not connected')
+        self.VoltageLabel = QLabel('Unknown')
+        self.StateLabel = QLabel('Unknown')
         self.init_status_bar()
 
         self.setGeometry(50, 50, 1200, 800)
@@ -40,12 +40,8 @@ class MainWindow(QMainWindow):
         self.size_fixed = False
 
     def init_status_bar(self):
-        self.ConnectionLabel = QLabel('      ')
-        self.VoltageLabel = QLabel('Ready')
-        self.StateLabel = QLabel('      ')
-
         statusbar = self.statusBar()
-        self.setStatusBar(statusbar)
+        #self.setStatusBar(statusbar)
 
         widget = QWidget(self)
         widget.setLayout(QHBoxLayout())
@@ -72,7 +68,17 @@ class MainWindow(QMainWindow):
         self.udp_port = config_dict["udp_port"]
 
     def on_json_received(self, js):
-        print(f"on_packet_received(): {js=}")
+        voltage = js['voltage']
+        if voltage is not None:
+            voltage = f"{voltage:.1f}V"
+        self.VoltageLabel.setText(voltage)
+
+        self.StateLabel.setText(js['state_name'])
+
+        #js['accept_click']
+        #js['accept_rectangle']
+        #js['rectangle_cap']
+        #js['click_cap']
 
     def on_jpeg_received(self, data):
         self.mainWidget.set_image(data)

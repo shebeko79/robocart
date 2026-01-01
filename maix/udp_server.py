@@ -11,6 +11,7 @@ import tracker
 
 UDP_PORT = 5005
 IMG_NO_ACK_TIMEOUT = 500
+STATE_SEND_PERIOD = 5
 
 
 class UdpServer(PacketProcessor):
@@ -29,6 +30,8 @@ class UdpServer(PacketProcessor):
 
         self.last_image_packet = 0
         self.last_image_send_time = time.time_ms()
+
+        self.last_state_send_time = time.time_ms()
 
     def process(self, img):
         self.do_receive()
@@ -100,11 +103,11 @@ class UdpServer(PacketProcessor):
                 self.last_image_send_time = tm
                 self.packets.append(bts)
 
-        if self.require_state_answer:
-            self.require_state_answer = False
-
+        if self.require_state_answer or tm >= self.last_state_send_time + STATE_SEND_PERIOD:
             bts = self.pack_state()
             if bts is not None:
+                self.require_state_answer = False
+                self.last_state_send_time = tm
                 self.packets.append(bts)
 
         if is_ready_to_send and len(self.packets) > 0:
