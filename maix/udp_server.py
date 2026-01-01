@@ -12,6 +12,7 @@ import tracker
 UDP_PORT = 5005
 IMG_NO_ACK_TIMEOUT = 500
 STATE_SEND_PERIOD = 5
+CONNECTION_EXPIRE_TIMEOUT = 60
 
 
 class UdpServer(PacketProcessor):
@@ -29,13 +30,26 @@ class UdpServer(PacketProcessor):
         self.last_ack_packet_number = 0
 
         self.last_image_packet = 0
-        self.last_image_send_time = time.time_ms()
-
-        self.last_state_send_time = time.time_ms()
+        self.last_image_send_time = 0
+        self.last_state_send_time = 0
+        self.last_received_time = time.time_s()
 
     def process(self, img):
         self.do_receive()
         self.do_send(img)
+
+    def reset_peer(self):
+        print('reset_peer()')
+        self.last_received_addr = None
+        self.last_received_packet_number = 0
+
+        self.last_ack_packet_number = 0
+
+        self.last_image_packet = 0
+        self.last_image_send_time = 0
+        self.last_state_send_time = 0
+        self.last_received_time = time.time_s()
+        self.packets = []
 
     def do_receive(self):
         sel = select.select([self.sock], [], [self.sock], 0)
@@ -44,7 +58,11 @@ class UdpServer(PacketProcessor):
             print('UdpServer.do_receive() socket error')
             return
 
+        tm = time.time_s()
+
         if len(sel[0]) == 0:
+            if tm > self.last_received_time + CONNECTION_EXPIRE_TIMEOUT:
+                self.reset_peer()
             return
 
         data, addr = self.sock.recvfrom(65535)
@@ -53,6 +71,7 @@ class UdpServer(PacketProcessor):
             return
 
         if self.last_received_addr is None or self.last_received_addr != addr:
+            self.reset_peer()
             self.last_received_addr = addr
             self.last_received_packet_number = pack_n
         elif self.last_received_packet_number >= pack_n and \

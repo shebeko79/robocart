@@ -174,7 +174,7 @@ class ImageWidget(QWidget):
     def init(self, jpeg_data):
         self.pixmap.loadFromData(jpeg_data,"JPEG")
         self.W, self.H = self.pixmap.width(), self.pixmap.height()
-        print(f'{self.W=} {self.H=}')
+        #print(f'{self.W=} {self.H=}')
 
         if self.H > self.screen_height * 0.8:
             resize_ratio = (self.screen_height * 0.8) / self.H

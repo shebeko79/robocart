@@ -1,11 +1,11 @@
 import sys
 import os
 import json
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from PyQt5.QtWidgets import QHBoxLayout,  QLabel
 from main_widget import MainWidget
-from udp_client import UdpReceiver
+from udp_client import UdpClient
 
 
 class MainWindow(QMainWindow):
@@ -34,8 +34,11 @@ class MainWindow(QMainWindow):
         self.json_received.connect(self.on_json_received)
         self.jpeg_received.connect(self.on_jpeg_received)
 
-        self.udp = UdpReceiver(self.host_name, self.udp_port, self.json_received, self.jpeg_received)
-        self.udp.start()
+        self.udp = UdpClient(self.host_name, self.udp_port, self.json_received, self.jpeg_received)
+        self.udp_timer = QTimer()
+        self.udp_timer.timeout.connect(self.process_udp)
+        self.udp_timer.start(250)
+        self.udp_alive = False
 
         self.size_fixed = False
 
@@ -85,6 +88,13 @@ class MainWindow(QMainWindow):
         if not self.size_fixed:
             self.setFixedSize(self.layout().sizeHint())
             self.size_fixed = True
+
+    def process_udp(self):
+        self.udp.process()
+        alive = self.udp.is_alive()
+        if alive != self.udp_alive:
+            self.udp_alive = alive
+            self.ConnectionLabel.setText('Connected' if alive else 'Not connected')
 
 
 if __name__ == '__main__':
