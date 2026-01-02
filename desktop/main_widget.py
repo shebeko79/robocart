@@ -15,10 +15,21 @@ class MainWidget(QWidget):
 
         self.image = ImageWidget(self)
 
-        self.camUpBtn = QPushButton('^', self)
-        self.camDownBtn = QPushButton('v', self)
-        self.camLeftBtn = QPushButton('<', self)
-        self.camRightBtn = QPushButton('>', self)
+        self.camUpBtn = QPushButton('^ (W)', self)
+        self.camDownBtn = QPushButton('v (S)', self)
+        self.camLeftBtn = QPushButton('< (A)', self)
+        self.camRightBtn = QPushButton('> (D)', self)
+
+        self.camLeftPosBtn = QPushButton('Left (L)', self)
+        self.camRightPosBtn = QPushButton('Right (R)', self)
+        self.camFrontBtn = QPushButton('Front (F)', self)
+        self.camTopBtn = QPushButton('Top (T)', self)
+        self.camBackBtn = QPushButton('Back (B)', self)
+
+        self.camLeftMostBtn = QPushButton('< (Q)', self)
+        self.camRightMostBtn = QPushButton('> (E)', self)
+        self.camBackMostBtn = QPushButton('^ (Z)', self)
+        self.camFrontMostBtn = QPushButton('v (C)', self)
 
         self.cartForwardBtn = QPushButton('^', self)
         self.cartBackwardBtn = QPushButton('v', self)
@@ -38,10 +49,23 @@ class MainWidget(QWidget):
         self.camLeftBtn.clicked.connect(self.fire_cam_left)
         self.camRightBtn.clicked.connect(self.fire_cam_right)
 
+        self.camLeftPosBtn.clicked.connect(self.fire_cam_left_pos)
+        self.camRightPosBtn.clicked.connect(self.fire_cam_right_pos)
+        self.camFrontBtn.clicked.connect(self.fire_cam_front)
+        self.camTopBtn.clicked.connect(self.fire_cam_top)
+        self.camBackBtn.clicked.connect(self.fire_cam_back)
+
+        self.camLeftMostBtn.clicked.connect(self.fire_cam_left_most)
+        self.camRightMostBtn.clicked.connect(self.fire_cam_right_most)
+        self.camBackMostBtn.clicked.connect(self.fire_cam_back_most)
+        self.camFrontMostBtn.clicked.connect(self.fire_cam_front_most)
+
         self.cartForwardBtn.clicked.connect(self.fire_cart_forward)
         self.cartBackwardBtn.clicked.connect(self.fire_cart_backward)
         self.cartLeftBtn.clicked.connect(self.fire_cart_left)
         self.cartRightBtn.clicked.connect(self.fire_cart_right)
+
+        self.image.setFixedSize(640, 640)
 
         vlayout = QVBoxLayout()
         hlayout = QHBoxLayout()
@@ -59,6 +83,39 @@ class MainWidget(QWidget):
         camera_group_box = QGroupBox("Camera")
         camera_group_box.setLayout(vlayout)
 
+        vlayout = QVBoxLayout()
+        hlayout = QHBoxLayout()
+        hlayout.addStretch()
+        hlayout.addWidget(self.camBackMostBtn)
+        hlayout.addStretch()
+        vlayout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
+        hlayout.addStretch()
+        hlayout.addWidget(self.camBackBtn)
+        hlayout.addStretch()
+        vlayout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.camLeftMostBtn)
+        hlayout.addWidget(self.camTopBtn)
+        hlayout.addWidget(self.camRightMostBtn)
+        vlayout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.camLeftPosBtn)
+        hlayout.addWidget(self.camFrontBtn)
+        hlayout.addWidget(self.camRightPosBtn)
+        vlayout.addLayout(hlayout)
+
+        hlayout = QHBoxLayout()
+        hlayout.addStretch()
+        hlayout.addWidget(self.camFrontMostBtn)
+        hlayout.addStretch()
+        vlayout.addLayout(hlayout)
+
+        cam_views_group_box = QGroupBox("Camera views")
+        cam_views_group_box.setLayout(vlayout)
 
         vlayout = QVBoxLayout()
         hlayout = QHBoxLayout()
@@ -78,6 +135,7 @@ class MainWidget(QWidget):
 
         ctl_layout = QVBoxLayout()
         ctl_layout.addWidget(camera_group_box)
+        ctl_layout.addWidget(cam_views_group_box)
         ctl_layout.addWidget(cart_group_box)
         ctl_layout.addStretch()
 
@@ -93,6 +151,15 @@ class MainWidget(QWidget):
         self.camDownBtn.setFocusPolicy(Qt.TabFocus)
         self.camLeftBtn.setFocusPolicy(Qt.TabFocus)
         self.camRightBtn .setFocusPolicy(Qt.TabFocus)
+        self.camLeftPosBtn.setFocusPolicy(Qt.TabFocus)
+        self.camRightPosBtn.setFocusPolicy(Qt.TabFocus)
+        self.camFrontBtn.setFocusPolicy(Qt.TabFocus)
+        self.camTopBtn.setFocusPolicy(Qt.TabFocus)
+        self.camBackBtn.setFocusPolicy(Qt.TabFocus)
+        self.camLeftMostBtn.setFocusPolicy(Qt.TabFocus)
+        self.camRightMostBtn.setFocusPolicy(Qt.TabFocus)
+        self.camBackMostBtn.setFocusPolicy(Qt.TabFocus)
+        self.camFrontMostBtn.setFocusPolicy(Qt.TabFocus)
         self.cartForwardBtn.setFocusPolicy(Qt.TabFocus)
         self.cartBackwardBtn.setFocusPolicy(Qt.TabFocus)
         self.cartLeftBtn.setFocusPolicy(Qt.TabFocus)
@@ -104,6 +171,10 @@ class MainWidget(QWidget):
 
     def move_cam(self, pan, tilt):
         js = {'cmd': 'move_cam', 'pan': pan, 'tilt': tilt}
+        self.app.udp.send_json(js)
+
+    def moveto_cam(self, pan, tilt):
+        js = {'cmd': 'moveto_cam', 'pan': pan, 'tilt': tilt}
         self.app.udp.send_json(js)
 
     def moveto_cam(self, pan, tilt):
@@ -138,12 +209,38 @@ class MainWidget(QWidget):
     def fire_cart_right(self):
         self.move_cart(0.0, 1.0)
 
+    def fire_cam_left_pos(self):
+        self.moveto_cam('LEFT', 'FRONT')
+
+    def fire_cam_right_pos(self):
+        self.moveto_cam('RIGHT', 'FRONT')
+
+    def fire_cam_front(self):
+        self.moveto_cam('CENTER', 'FRONT')
+
+    def fire_cam_top(self):
+        self.moveto_cam('CENTER', 'UP')
+
+    def fire_cam_back(self):
+        self.moveto_cam('CENTER', 'BACKWARD')
+
+    def fire_cam_left_most(self):
+        self.moveto_cam('MIN', 'CURRENT')
+
+    def fire_cam_right_most(self):
+        self.moveto_cam('MAX', 'CURRENT')
+
+    def fire_cam_back_most(self):
+        self.moveto_cam('CURRENT', 'MIN')
+
+    def fire_cam_front_most(self):
+        self.moveto_cam('CURRENT', 'MAX')
+
     def set_image(self, jpg):
         self.image.init(jpg)
 
     def keyPressEvent(self, e):
         k = e.key()
-        print(k)
 
         if k == Qt.Key_W:
             self.fire_cam_up()
@@ -153,6 +250,24 @@ class MainWidget(QWidget):
             self.fire_cam_left()
         elif k == Qt.Key_D:
             self.fire_cam_right()
+        elif k == Qt.Key_L:
+            self.fire_cam_left_pos()
+        elif k == Qt.Key_R:
+            self.fire_cam_right_pos()
+        elif k == Qt.Key_F:
+            self.fire_cam_front()
+        elif k == Qt.Key_T:
+            self.fire_cam_top()
+        elif k == Qt.Key_B:
+            self.fire_cam_back()
+        elif k == Qt.Key_Q:
+            self.fire_cam_left_most()
+        elif k == Qt.Key_E:
+            self.fire_cam_right_most()
+        elif k == Qt.Key_Z:
+            self.fire_cam_back_most()
+        elif k == Qt.Key_C:
+            self.fire_cam_front_most()
         elif k == Qt.Key_Right:
             self.fire_cart_right()
         elif k == Qt.Key_Left:

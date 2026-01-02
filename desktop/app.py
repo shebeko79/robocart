@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         self.StateLabel = QLabel('Unknown')
         self.init_status_bar()
 
-        self.setGeometry(50, 50, 1200, 800)
+        self.setGeometry(50, 50, 950, 750)
         self.setWindowTitle('Robocart control')
 
         self.json_received.connect(self.on_json_received)
