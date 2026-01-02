@@ -76,7 +76,17 @@ class MainWindow(QMainWindow):
             voltage = f"{voltage:.1f}V"
         self.VoltageLabel.setText(voltage)
 
-        self.StateLabel.setText(js['state_name'])
+        state_name = js['state_name']
+
+        self.StateLabel.setText(state_name)
+
+        if state_name != self.mainWidget.cur_state:
+            buttons = js.get('buttons')
+            if buttons is None:
+                buttons = []
+
+            self.mainWidget.set_buttons(buttons)
+            self.mainWidget.cur_state = js['state_name']
 
         #js['accept_click']
         #js['accept_rectangle']

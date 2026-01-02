@@ -13,6 +13,8 @@ class MainWidget(QWidget):
         super(MainWidget, self).__init__(application)
         self.app = application
 
+        self.cur_state = ''
+
         self.image = ImageWidget(self)
 
         self.camUpBtn = QPushButton('^ (W)', self)
@@ -35,6 +37,9 @@ class MainWidget(QWidget):
         self.cartBackwardBtn = QPushButton('v', self)
         self.cartLeftBtn = QPushButton('<', self)
         self.cartRightBtn = QPushButton('>', self)
+
+        self.dynamic_buttons_group_box = QGroupBox("Actions")
+        self.dynamic_buttons = []
 
         self.buttonsLayout = QVBoxLayout()
 
@@ -133,14 +138,22 @@ class MainWidget(QWidget):
         cart_group_box = QGroupBox("Cart")
         cart_group_box.setLayout(vlayout)
 
+        vlayout = QVBoxLayout()
+        self.dynamic_buttons_group_box.setLayout(vlayout)
+
         ctl_layout = QVBoxLayout()
         ctl_layout.addWidget(camera_group_box)
         ctl_layout.addWidget(cam_views_group_box)
         ctl_layout.addWidget(cart_group_box)
+        ctl_layout.addWidget(self.dynamic_buttons_group_box)
         ctl_layout.addStretch()
 
+        image_layout = QVBoxLayout()
+        image_layout.addWidget(self.image)
+        image_layout.addStretch()
+
         main_layout = QHBoxLayout()
-        main_layout.addWidget(self.image)
+        main_layout.addLayout(image_layout)
         main_layout.addLayout(ctl_layout)
 
         self.setLayout(main_layout)
@@ -169,6 +182,26 @@ class MainWidget(QWidget):
         #self.firstButton.setEnabled(not_first_img)
         pass
 
+    def set_buttons(self, buttons):
+        layout = self.dynamic_buttons_group_box.layout()
+        print(buttons)
+
+        for w in self.dynamic_buttons:
+            layout.removeWidget(w)
+            w.deleteLater()
+
+        self.dynamic_buttons = []
+
+        for b in buttons:
+            button_name = b['caption']
+            w = QPushButton('', self)
+            w.setText(button_name)
+            w.setEnabled(b['enabled'])
+            w.clicked.connect(lambda state, bn=button_name: self.fire_dynamic_button(bn))
+
+            self.dynamic_buttons.append(w)
+            layout.addWidget(w)
+
     def move_cam(self, pan, tilt):
         js = {'cmd': 'move_cam', 'pan': pan, 'tilt': tilt}
         self.app.udp.send_json(js)
@@ -183,6 +216,10 @@ class MainWidget(QWidget):
 
     def move_cart(self, speed, pan):
         js = {'cmd': 'move', 'speed': speed, 'pan': pan}
+        self.app.udp.send_json(js)
+
+    def fire_dynamic_button(self, button_name):
+        js = {'cmd': 'click', 'state_name': self.cur_state, 'caption': button_name}
         self.app.udp.send_json(js)
 
     def fire_cam_up(self):
