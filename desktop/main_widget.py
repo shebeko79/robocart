@@ -87,6 +87,17 @@ class MainWidget(QWidget):
 
         self.setLayout(main_layout)
 
+        self.setFocusPolicy(Qt.TabFocus)
+        self.image.setFocusPolicy(Qt.NoFocus)
+        self.camUpBtn.setFocusPolicy(Qt.TabFocus)
+        self.camDownBtn.setFocusPolicy(Qt.TabFocus)
+        self.camLeftBtn.setFocusPolicy(Qt.TabFocus)
+        self.camRightBtn .setFocusPolicy(Qt.TabFocus)
+        self.cartForwardBtn.setFocusPolicy(Qt.TabFocus)
+        self.cartBackwardBtn.setFocusPolicy(Qt.TabFocus)
+        self.cartLeftBtn.setFocusPolicy(Qt.TabFocus)
+        self.cartRightBtn.setFocusPolicy(Qt.TabFocus)
+
     def check_controls(self):
         #self.firstButton.setEnabled(not_first_img)
         pass
@@ -132,6 +143,7 @@ class MainWidget(QWidget):
 
     def keyPressEvent(self, e):
         k = e.key()
+        print(k)
 
         if k == Qt.Key_W:
             self.fire_cam_up()
