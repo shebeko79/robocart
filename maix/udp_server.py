@@ -10,7 +10,7 @@ import track_utils
 import tracker
 
 UDP_PORT = 5005
-IMG_NO_ACK_TIMEOUT = 500
+IMG_NO_ACK_TIMEOUT = 1500
 STATE_SEND_PERIOD = 5
 CONNECTION_EXPIRE_TIMEOUT = 60
 
@@ -39,7 +39,7 @@ class UdpServer(PacketProcessor):
         self.do_send(img)
 
     def reset_peer(self):
-        print('reset_peer()')
+        #print('reset_peer()')
         self.last_received_addr = None
         self.last_received_packet_number = 0
 
@@ -114,7 +114,7 @@ class UdpServer(PacketProcessor):
                         (self.last_ack_packet_number == self.last_image_packet or
                          tm >= self.last_image_send_time + IMG_NO_ACK_TIMEOUT)
 
-        print(f'{is_send_image}: {is_ready_to_send=} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=}')
+        #print(f'{is_send_image}: {is_ready_to_send=} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=}')
         if is_send_image:
             bts = self.pack_img()
             if bts is not None:

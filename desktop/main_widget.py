@@ -14,6 +14,8 @@ class MainWidget(QWidget):
         self.app = application
 
         self.cur_state = ''
+        self.accept_click = False
+        self.accept_rectangle = False
 
         self.image = ImageWidget(self)
 
@@ -47,8 +49,6 @@ class MainWidget(QWidget):
         self.check_controls()
 
     def init_ui(self):
-        self.image = ImageWidget(self)
-
         self.camUpBtn.clicked.connect(self.fire_cam_up)
         self.camDownBtn.clicked.connect(self.fire_cam_down)
         self.camLeftBtn.clicked.connect(self.fire_cam_left)
@@ -184,7 +184,6 @@ class MainWidget(QWidget):
 
     def set_buttons(self, buttons):
         layout = self.dynamic_buttons_group_box.layout()
-        print(buttons)
 
         for w in self.dynamic_buttons:
             layout.removeWidget(w)
@@ -197,10 +196,23 @@ class MainWidget(QWidget):
             w = QPushButton('', self)
             w.setText(button_name)
             w.setEnabled(b['enabled'])
+            w.setFocusPolicy(Qt.TabFocus)
             w.clicked.connect(lambda state, bn=button_name: self.fire_dynamic_button(bn))
 
             self.dynamic_buttons.append(w)
             layout.addWidget(w)
+
+    def set_mouse_policy(self, accept_click, accept_rectangle):
+        self.accept_click = accept_click
+        self.accept_rectangle = accept_rectangle
+
+    def on_image_click(self, x, y):
+        js = {'cmd': 'click_point', 'state_name': self.cur_state, 'x': x, 'y': y}
+        self.app.udp.send_json(js)
+
+    def on_image_rect(self, x1, y1, x2, y2):
+        js = {'cmd': 'sel_rect', 'state_name': self.cur_state, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2}
+        self.app.udp.send_json(js)
 
     def move_cam(self, pan, tilt):
         js = {'cmd': 'move_cam', 'pan': pan, 'tilt': tilt}
@@ -319,138 +331,108 @@ class ImageWidget(QWidget):
     def __init__(self, main_widget: MainWidget):
         super(ImageWidget, self).__init__(main_widget.app)
         self.main_widget = main_widget
-        self.app = main_widget.app
-        self.results = []
         self.setMouseTracking(True)
         self.screen_height = QDesktopWidget().screenGeometry().height()
         self.modified = False
 
         self.pixmap = QPixmap()
         self.image = QLabel()
-        self.image.setObjectName("image")
-        self.pixmapOriginal = QPixmap.copy(self.pixmap)
 
         self.drawing = False
-        self.lastPoint = QPoint()
+        self.firstPoint = QPoint()
+        self.secondPoint = QPoint()
+
+        self.W = 640
+        self.H = 640
+
         hbox = QHBoxLayout(self.image)
         self.setLayout(hbox)
 
     def init(self, jpeg_data):
-        self.pixmap.loadFromData(jpeg_data,"JPEG")
+        self.pixmap.loadFromData(jpeg_data, "JPEG")
         self.W, self.H = self.pixmap.width(), self.pixmap.height()
-        #print(f'{self.W=} {self.H=}')
 
         if self.H > self.screen_height * 0.8:
             resize_ratio = (self.screen_height * 0.8) / self.H
             self.W = round(self.W * resize_ratio)
             self.H = round(self.H * resize_ratio)
-            self.pixmap = QPixmap.scaled(self.pixmap, self.W, self.H,
-                                         transformMode=Qt.SmoothTransformation)
+            self.pixmap = QPixmap.scaled(self.pixmap, self.W, self.H, transformMode=Qt.SmoothTransformation)
 
         self.setFixedSize(self.W, self.H)
-        self.pixmapOriginal = QPixmap.copy(self.pixmap)
-
-        #self.pixmap = self.drawResultBox()
         self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.drawPixmap(self.rect(), self.pixmap)
 
-    def mousePressEvent(self, event):
-        pass
-        '''
-        if event.button() == Qt.LeftButton:
-            self.prev_pixmap = self.pixmap
-            self.drawing = True
-            self.lastPoint = event.pos()
-        elif event.button() == Qt.RightButton:
-            x, y = event.pos().x(), event.pos().y()
-            for i, box in enumerate(self.results):
-                lx, ly, rx, ry = box[:4]
-                if lx <= x <= rx and ly <= y <= ry:
-                    self.results.pop(i)
-                    self.modified = True
-                    self.pixmap = self.drawResultBox()
-                    self.update()
-                    break
-        '''
-
-    def constrains(self, x, y):
-        if x < 0:
-            x = 0
-        elif x >= self.pixmap.width():
-            x = self.pixmap.width() - 1
-
-        if y < 0:
-            y = 0
-        elif y >= self.pixmap.height():
-            y = self.pixmap.height() - 1
-
-        return [x, y]
-
-    def mouseMoveEvent(self, event):
-        pass
-        '''
-        self.app.cursorPos.setText(f'({event.pos().x()}, {event.pos().y()})')
-        if event.buttons() and Qt.LeftButton and self.drawing:
-            self.pixmap = QPixmap.copy(self.prev_pixmap)
-            painter = QPainter(self.pixmap)
-            painter.setPen(QPen(Qt.red, 2, Qt.SolidLine))
-            p1_x, p1_y = self.lastPoint.x(), self.lastPoint.y()
-            p2_x, p2_y = event.pos().x(), event.pos().y()
-            p2_x, p2_y = self.constrains(p2_x, p2_y)
-            painter.drawRect(min(p1_x, p2_x), min(p1_y, p2_y),
-                             abs(p1_x - p2_x), abs(p1_y - p2_y))
-            self.update()
-        '''
-
-    def mouseReleaseEvent(self, event):
-        pass
-        '''
-        if event.button() != Qt.LeftButton:
-            return
-
         if not self.drawing:
             return
 
-        self.drawing = False
+        painter.setPen(QPen(Qt.red, 2, Qt.SolidLine))
+        x1, y1 = self.firstPoint.x(), self.firstPoint.y()
+        x2, y2 = self.secondPoint.x(), self.secondPoint.y()
 
-        p1_x, p1_y = self.lastPoint.x(), self.lastPoint.y()
-        p2_x, p2_y = event.pos().x(), event.pos().y()
-        p2_x, p2_y = self.constrains(p2_x, p2_y)
+        painter.drawRect(min(x1, x2), min(y1, y2), abs(x1 - x2), abs(y1 - y2))
 
-        if (p1_x, p1_y) == (p2_x, p2_y):
+    @staticmethod
+    def constrains(v):
+        if v < 0:
+            v = 0
+        elif v >= 1.0:
+            v = 1.0
+        return v
+
+    def mousePressEvent(self, event):
+        if event.button() != Qt.LeftButton:
             return
 
-        l1x, l1y = min(p1_x, p2_x), min(p1_y, p2_y)
-        l2x, l2y = max(p1_x, p2_x), max(p1_y, p2_y)
+        if self.W == 0 or self.H == 0:
+            return
 
-        self.results.append([l1x, l1y, l2x, l2y, 0])
+        if self.main_widget.accept_click:
+            x = self.constrains(event.pos().x() / self.W)
+            y = self.constrains(event.pos().y() / self.H)
 
-        sel_idx = self.main_widget.classesCombo.currentIndex()
-        if sel_idx < 0:
-            sel_idx = 0
-        self.markBox(sel_idx)
-        '''
+            self.main_widget.on_image_click(x, y)
+            return
 
-    def resetDrawing(self):
+        if self.main_widget.accept_rectangle:
+            self.drawing = True
+            self.firstPoint = event.pos()
+            self.secondPoint = event.pos()
+            self.update()
+
+    def mouseMoveEvent(self, event):
+        if self.drawing:
+            self.secondPoint = event.pos()
+            self.update()
+
+    def mouseReleaseEvent(self, event):
+        if not self.drawing or event.button() != Qt.LeftButton:
+            return
+
         self.drawing = False
-        self.pixmap = self.drawResultBox()
         self.update()
 
-    def drawResultBox(self):
-        res = QPixmap.copy(self.pixmapOriginal)
-        painter = QPainter(res)
-        font = QFont('mono', 15, 1)
-        painter.setFont(font)
-        painter.setPen(QPen(Qt.red, 2, Qt.SolidLine))
-        for box in self.results:
-            lx, ly, rx, ry = box[:4]
-            painter.drawRect(lx, ly, rx - lx, ry - ly)
-            idx = box[4]
-            if 0 <= idx < len(self.main_widget.classes):
-                painter.setPen(QPen(Qt.blue, 2, Qt.SolidLine))
-                painter.drawText(lx, ly + 15, self.main_widget.classes[idx])
-                painter.setPen(QPen(Qt.red, 2, Qt.SolidLine))
-        return res
+        if not self.main_widget.accept_rectangle:
+            return
+
+        if self.W == 0 or self.H == 0:
+            return
+
+        x1 = self.firstPoint.x()
+        y1 = self.firstPoint.y()
+
+        x2 = event.pos().x()
+        y2 = event.pos().y()
+
+        if (x1, y1) == (x2, y2):
+            return
+
+        x1 = self.constrains(x1 / self.W)
+        y1 = self.constrains(y1 / self.H)
+
+        x2 = self.constrains(x2 / self.W)
+        y2 = self.constrains(y2 / self.H)
+
+        self.main_widget.on_image_rect(x1, y1, x2, y2)

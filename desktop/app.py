@@ -26,6 +26,7 @@ class MainWindow(QMainWindow):
         self.ConnectionLabel = QLabel('Not connected')
         self.VoltageLabel = QLabel('Unknown')
         self.StateLabel = QLabel('Unknown')
+        self.MessageLabel = QLabel('')
         self.init_status_bar()
 
         self.setGeometry(50, 50, 950, 750)
@@ -44,13 +45,13 @@ class MainWindow(QMainWindow):
 
     def init_status_bar(self):
         statusbar = self.statusBar()
-        #self.setStatusBar(statusbar)
 
         widget = QWidget(self)
         widget.setLayout(QHBoxLayout())
         widget.layout().addWidget(self.ConnectionLabel)
         widget.layout().addWidget(self.VoltageLabel)
         widget.layout().addWidget(self.StateLabel)
+        widget.layout().addWidget(self.MessageLabel)
         widget.layout().addStretch()
         statusbar.addWidget(widget)
 
@@ -78,20 +79,26 @@ class MainWindow(QMainWindow):
 
         state_name = js['state_name']
 
-        self.StateLabel.setText(state_name)
-
         if state_name != self.mainWidget.cur_state:
+            self.StateLabel.setText(state_name)
             buttons = js.get('buttons')
             if buttons is None:
                 buttons = []
 
+            accept_click = js['accept_click']
+            accept_rectangle = js['accept_rectangle']
+
             self.mainWidget.set_buttons(buttons)
             self.mainWidget.cur_state = js['state_name']
+            self.mainWidget.set_mouse_policy(accept_click, accept_rectangle)
 
-        #js['accept_click']
-        #js['accept_rectangle']
-        #js['rectangle_cap']
-        #js['click_cap']
+            status = ''
+            if accept_click:
+                status = js['click_cap']
+            elif accept_rectangle:
+                status = js['rectangle_cap']
+
+            self.MessageLabel.setText(status)
 
     def on_jpeg_received(self, data):
         self.mainWidget.set_image(data)
