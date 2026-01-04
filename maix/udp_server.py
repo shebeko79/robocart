@@ -33,6 +33,7 @@ class UdpServer(PacketProcessor):
         self.last_image_send_time = 0
         self.last_state_send_time = 0
         self.last_received_time = time.time_s()
+        self.packets = []
 
     def process(self, img):
         self.do_receive()
@@ -78,6 +79,8 @@ class UdpServer(PacketProcessor):
                 not (pack_n < 64 and self.last_received_packet_number > 65536-64):
             return
 
+        self.last_received_time = time.time_s()
+        track_utils.last_request_time = time.time_s()
         self.last_received_packet_number = pack_n
         self.parse(data)
 
