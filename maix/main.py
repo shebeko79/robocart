@@ -5,6 +5,7 @@ import pan_tilt
 import tracker
 import track_utils
 import states
+import watch_dog
 from track_utils import CAM_SIZE
 #import http_server
 import touch_process
@@ -43,9 +44,13 @@ def main_init():
     sock.bind(('0.0.0.0', udp_server.UDP_PORT))
     udp_serv = udp_server.UdpServer(sock)
 
+    watch_dog.init()
+
 
 def main_cycle():
     while not app.need_exit():
+        watch_dog.feed()
+
         st = states.current_state
         if not st:
             break
@@ -84,6 +89,7 @@ def main_cycle():
 
     pan_tilt.shutdown()
     #http_server.shutdown()
+    watch_dog.stop()
 
 
 if __name__ == "__main__":
