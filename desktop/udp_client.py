@@ -11,8 +11,7 @@ KEEP_ALIVE_PERIOD = 10
 class UdpClient(PacketProcessor):
     def __init__(self, host_name, port, json_sig, jpeg_sig):
         super().__init__()
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setblocking(False)
+        self.sock: socket.socket = None
         self.host_name = host_name
         self.port = port
         self.addr = None
@@ -23,6 +22,19 @@ class UdpClient(PacketProcessor):
         self.last_send_time = 0
         self.thr = None
         self.thread_alive = True
+
+    def resolve_addr(self):
+        res = socket.getaddrinfo(self.host_name, None)
+
+        r = res[0]
+        proto = r[0]
+        self.addr = (r[4][0], self.port)
+
+        if self.sock:
+            self.sock.close()
+
+        self.sock = socket.socket(proto, socket.SOCK_DGRAM)
+        self.sock.setblocking(False)
 
     def process(self):
         t = int(time.time())
@@ -35,7 +47,10 @@ class UdpClient(PacketProcessor):
             self.thr = None
 
         if self.addr is None:
-            self.addr = (socket.gethostbyname(self.host_name), self.port)
+            self.resolve_addr()
+            if self.addr is None:
+                return
+
             self.last_received_packet_number = 0
             self.last_received_time = t
             self.last_send_time = 0
@@ -67,6 +82,12 @@ class UdpClient(PacketProcessor):
     def is_alive(self):
         return self.addr is not None and self.last_received_packet_number > 0
 
+    @staticmethod
+    def is_same_address(a, b):
+        if len(a) < 2 or len(b) < 2:
+            return a == b
+        return a[0] == b[0] and a[1] == b[1]
+
     def _loop(self):
         while self.thread_alive:
             sel = select.select([self.sock], [], [self.sock], 1.0)
@@ -80,7 +101,7 @@ class UdpClient(PacketProcessor):
                 continue
 
             data, addr = self.sock.recvfrom(65536)
-            if addr != self.addr:
+            if not self.is_same_address(addr, self.addr):
                 continue
 
             pack_n = self.get_packet_number(data)

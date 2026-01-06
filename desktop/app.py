@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import QHBoxLayout,  QLabel
 from main_widget import MainWidget
 from udp_client import UdpClient
 
+CONFIG_FILE = 'config.cfg'
+
 
 class MainWindow(QMainWindow):
 
@@ -48,10 +50,10 @@ class MainWindow(QMainWindow):
 
         widget = QWidget(self)
         widget.setLayout(QHBoxLayout())
-        widget.layout().addWidget(self.ConnectionLabel)
         widget.layout().addWidget(self.VoltageLabel)
         widget.layout().addWidget(self.StateLabel)
         widget.layout().addWidget(self.MessageLabel)
+        widget.layout().addWidget(self.ConnectionLabel)
         widget.layout().addStretch()
         statusbar.addWidget(widget)
 
@@ -59,10 +61,10 @@ class MainWindow(QMainWindow):
         ev.accept()
 
     def load_config(self):
-        if not os.path.exists('config.json'):
+        if not os.path.exists(CONFIG_FILE):
             return
 
-        with open('config.json', 'r') as config_file:
+        with open(CONFIG_FILE, 'r') as config_file:
             try:
                 config_dict = json.load(config_file)
             except ValueError:
@@ -111,7 +113,11 @@ class MainWindow(QMainWindow):
         alive = self.udp.is_alive()
         if alive != self.udp_alive:
             self.udp_alive = alive
-            self.ConnectionLabel.setText('Connected' if alive else 'Not connected')
+            if alive:
+                label = 'Connected to ' + self.udp.addr[0]
+            else:
+                label = 'Not connected'
+            self.ConnectionLabel.setText(label)
 
 
 if __name__ == '__main__':

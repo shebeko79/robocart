@@ -43,7 +43,7 @@ def process_server(sock):
 if __name__ == "__main__":
 
     sock_client = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-    sock_client.bind(("fe80::e0f9:8c00:d5eb:a07b%19", UDP_PORT))
+    sock_client.bind(("", UDP_PORT+1))
     sock_client.setblocking(False)
 
     sock_server = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)

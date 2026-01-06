@@ -40,8 +40,8 @@ def main_init():
     #http_server.init()
     telegram.init()
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('0.0.0.0', udp_server.UDP_PORT))
+    sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+    sock.bind(('', udp_server.UDP_PORT))
     udp_serv = udp_server.UdpServer(sock)
 
     watch_dog.init()
