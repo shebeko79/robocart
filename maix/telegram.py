@@ -6,6 +6,7 @@ import track_utils
 import json
 import mover
 import os
+import subprocess
 
 telegramUpdateId = 0
 lastUpdateTime = 0
@@ -102,7 +103,7 @@ def get_commands():
     return cmds
 
 
-def answer_command(cmd, status, params = None):
+def answer_command(cmd, status, params=None):
     cmd_name = cmd['name']
     msg = f'{status}:{cmd_name}:{DEVICE_NAME}'
 
@@ -128,6 +129,29 @@ def process_sleep(cmd):
 
 def process_state(cmd):
     params = [f"{mover.voltage:.1f}"]
+    return params
+
+
+def process_ip(cmd):
+    ip4 = ''
+    try:
+        res = subprocess.check_output('ip -4 address show dev wlan0'.split(' ')).decode('utf8').split(' ')
+        ip4 = res[res.index('inet')+1]
+        if '/' in ip4:
+            ip4 = ip4[:ip4.index('/')]
+    except Exception as e:
+        print(e)
+
+    ip6 = ''
+    try:
+        res = subprocess.check_output('ip -6 address show dev wlan0'.split(' ')).decode('utf8').split(' ')
+        ip6 = res[res.index('inet6')+1]
+        if '/' in ip6:
+            ip6 = ip6[:ip6.index('/')]
+    except Exception as e:
+        print(e)
+
+    params = [ip4, ip6]
     return params
 
 
@@ -193,6 +217,8 @@ def process(img):
                 process_sleep(cmd)
             elif cmd_name == 'state':
                 response_params = process_state(cmd)
+            elif cmd_name == 'ip':
+                response_params = process_ip(cmd)
             elif cmd_name == 'image':
                 process_image(cmd, img)
             else:
