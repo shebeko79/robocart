@@ -1,3 +1,4 @@
+import os
 from maix import camera, image, display, app, time
 import mover
 import algos
@@ -39,6 +40,11 @@ def main_init():
 
     #http_server.init()
     telegram.init()
+
+    udp_key = None
+    if os.path.exists(track_utils.CFG_PATH + "/udp.key"):
+        with open(track_utils.CFG_PATH + "/udp.key", 'rb') as file:
+            udp_key = file.read()
 
     sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
     sock.bind(('', udp_server.UDP_PORT))

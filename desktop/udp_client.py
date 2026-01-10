@@ -3,13 +3,14 @@ import select
 import threading
 import time
 from packet_processor import PacketProcessor
+import aes_pack
 
 CONNECTION_EXPIRE_TIMEOUT = 60
 KEEP_ALIVE_PERIOD = 10
 
 
 class UdpClient(PacketProcessor):
-    def __init__(self, host_name, port, json_sig, jpeg_sig):
+    def __init__(self, host_name, port, json_sig, jpeg_sig, key=None):
         super().__init__()
         self.sock: socket.socket = None
         self.host_name = host_name
@@ -22,6 +23,10 @@ class UdpClient(PacketProcessor):
         self.last_send_time = 0
         self.thr = None
         self.thread_alive = True
+
+        if key is not None:
+            self.aes = aes_pack.AesPack(key)
+            self.is_crypted = True
 
     def resolve_addr(self):
         res = socket.getaddrinfo(self.host_name, None)
@@ -115,6 +120,12 @@ class UdpClient(PacketProcessor):
             self.last_received_time = int(time.time())
             self.last_received_packet_number = pack_n
             self.parse(data)
+
+    def crypt(self, bts):
+        return self.aes.crypt(bts, self.send_packet_number)
+
+    def decrypt(self, bts, packet_number):
+        return self.aes.decrypt(bts, packet_number)
 
     def process_json(self, js):
         self.json_sig.emit(js)

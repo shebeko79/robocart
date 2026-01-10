@@ -11,3 +11,4 @@ main_board-backups
 fp-info-cache
 *.kicad_prl
 telegram_bot.py
+*.key

@@ -8,6 +8,7 @@ from main_widget import MainWidget
 from udp_client import UdpClient
 
 CONFIG_FILE = 'config.cfg'
+UDP_KEY_FILE = 'udp.key'
 
 
 class MainWindow(QMainWindow):
@@ -37,7 +38,12 @@ class MainWindow(QMainWindow):
         self.json_received.connect(self.on_json_received)
         self.jpeg_received.connect(self.on_jpeg_received)
 
-        self.udp = UdpClient(self.host_name, self.udp_port, self.json_received, self.jpeg_received)
+        udp_key = None
+        if os.path.exists(UDP_KEY_FILE):
+            with open(UDP_KEY_FILE, 'rb') as file:
+                udp_key = file.read()
+
+        self.udp = UdpClient(self.host_name, self.udp_port, self.json_received, self.jpeg_received, udp_key)
         self.udp_timer = QTimer()
         self.udp_timer.timeout.connect(self.process_udp)
         self.udp_timer.start(250)

@@ -1,7 +1,8 @@
 from maix import image, time
-from packet_processor import PacketProcessor, PacketType
 import socket
 import select
+from packet_processor import PacketProcessor, PacketType
+import aes_pack
 
 import mover
 import pan_tilt
@@ -16,7 +17,7 @@ CONNECTION_EXPIRE_TIMEOUT = 60
 
 
 class UdpServer(PacketProcessor):
-    def __init__(self, sock: socket):
+    def __init__(self, sock: socket, key=None):
         super().__init__()
         self.img: image.Image = None
         self.require_state_answer = False
@@ -34,6 +35,10 @@ class UdpServer(PacketProcessor):
         self.last_state_send_time = 0
         self.last_received_time = time.time_s()
         self.packets = []
+
+        if key is not None:
+            self.aes = aes_pack.AesPack(key)
+            self.is_crypted = True
 
     def process(self, img):
         self.do_receive()
@@ -181,6 +186,16 @@ class UdpServer(PacketProcessor):
             cur_state['buttons'] = buttons
 
         return self.pack_json(cur_state)
+
+    def crypt(self, bts):
+        t = time.time_ms()
+        ret = self.aes.crypt(bts, self.send_packet_number)
+        t = time.time_ms() - t
+        print(f'{t=} {len(bts)=} {len(ret)=}')
+        return ret
+
+    def decrypt(self, bts, packet_number):
+        return self.aes.decrypt(bts, packet_number)
 
     def process_ack(self, ack_packet_number):
         self.last_ack_packet_number = ack_packet_number
