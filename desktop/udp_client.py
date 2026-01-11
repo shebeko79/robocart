@@ -139,9 +139,9 @@ class UdpClient(PacketProcessor):
         self.packets.append(self.pack_ack(self.received_candidate_packet_number))
 
     def send_json(self, js):
-        bts = self.pack_json(js)
-        if bts is None:
+        pck = self.pack_json(js)
+        if pck is None:
             return
 
-        self.packets.append(bts)
+        self.packets.append(pck)
 

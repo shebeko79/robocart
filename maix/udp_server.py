@@ -124,19 +124,19 @@ class UdpServer(PacketProcessor):
 
         #print(f'{is_send_image}: {is_ready_to_send=} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=}')
         if is_send_image:
-            bts = self.pack_img()
-            if bts is not None:
+            pck = self.pack_img()
+            if pck is not None:
                 self.last_image_packet = self.get_next_packet_number()
                 self.last_image_send_time = tm
-                self.packets.append(bts)
+                self.packets.append(pck)
 
         if self.require_state_answer or tm >= self.last_state_send_time + STATE_SEND_PERIOD:
             #print(f'do_send() send state: {self.require_state_answer=} {tm=} {tm >= self.last_state_send_time + STATE_SEND_PERIOD}')
-            bts = self.pack_state()
-            if bts is not None:
+            pck = self.pack_state()
+            if pck is not None:
                 self.require_state_answer = False
                 self.last_state_send_time = tm
-                self.packets.append(bts)
+                self.packets.append(pck)
 
         if is_ready_to_send and len(self.packets) > 0:
             bts = self.pack()

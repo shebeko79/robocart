@@ -26,7 +26,7 @@ class PacketProcessor:
         fit_it = 0
         sz = 0
         for p in self.packets:
-            chunk_len = len(p)
+            chunk_len = len(p[1]) + 3
             if sz + chunk_len > self.MAX_CHUNK_SIZE:
                 break
             fit_it += 1
@@ -35,9 +35,13 @@ class PacketProcessor:
         payload = bytearray(sz)
         off = 0
         for i in range(0, fit_it):
-            chunk_len = len(self.packets[i])
-            payload[off:off+chunk_len] = self.packets[i]
-            off += chunk_len
+            p = self.packets[i]
+            chunk_len = len(p[1])
+
+            payload[off:off+2] = struct.pack("!H", chunk_len)
+            payload[off+2] = p[0]
+            payload[off+3:off+3+chunk_len] = p[1]
+            off += chunk_len + 3
 
         if self.is_crypted:
             payload = self.crypt(payload)
@@ -57,10 +61,7 @@ class PacketProcessor:
 
     @staticmethod
     def pack_chunk(data, tp: PacketType):
-        ret = struct.pack("!H", len(data))
-        ret += struct.pack("!B", tp)
-        ret += data
-        return ret
+        return tp, data
 
     def pack_json(self, js) -> bytes:
         return self.pack_chunk(json.dumps(js).encode('utf-8'), PacketType.JSON)
