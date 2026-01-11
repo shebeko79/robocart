@@ -18,6 +18,7 @@ class UdpClient(PacketProcessor):
         self.addr = None
         self.json_sig = json_sig
         self.jpeg_sig = jpeg_sig
+        self.received_candidate_packet_number = 0
         self.last_received_packet_number = 0
         self.last_received_time = 0
         self.last_send_time = 0
@@ -57,6 +58,7 @@ class UdpClient(PacketProcessor):
                 return
 
             self.last_received_packet_number = 0
+            self.received_candidate_packet_number = 0
             self.last_received_time = t
             self.last_send_time = 0
 
@@ -117,9 +119,11 @@ class UdpClient(PacketProcessor):
                     not (pack_n < 64 and self.last_received_packet_number > 65536 - 64):
                 continue
 
-            self.last_received_time = int(time.time())
-            self.last_received_packet_number = pack_n
-            self.parse(data)
+            self.received_candidate_packet_number = pack_n
+
+            if self.parse(data):
+                self.last_received_time = int(time.time())
+                self.last_received_packet_number = pack_n
 
     def crypt(self, bts):
         return self.aes.crypt(bts, self.send_packet_number)
@@ -132,7 +136,7 @@ class UdpClient(PacketProcessor):
 
     def process_jpeg(self, bts):
         self.jpeg_sig.emit(bts)
-        self.packets.append(self.pack_ack(self.last_received_packet_number))
+        self.packets.append(self.pack_ack(self.received_candidate_packet_number))
 
     def send_json(self, js):
         bts = self.pack_json(js)

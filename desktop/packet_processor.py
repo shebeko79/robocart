@@ -26,24 +26,27 @@ class PacketProcessor:
         fit_it = 0
         sz = 0
         for p in self.packets:
-            sz += len(p)
-            if sz > self.MAX_CHUNK_SIZE:
+            chunk_len = len(p)
+            if sz + chunk_len > self.MAX_CHUNK_SIZE:
                 break
             fit_it += 1
+            sz += chunk_len
 
-        ret = struct.pack("!H", self.send_packet_number)
-
-        payload = b''
+        payload = bytearray(sz)
+        off = 0
         for i in range(0, fit_it):
-            payload += self.packets[i]
+            chunk_len = len(self.packets[i])
+            payload[off:off+chunk_len] = self.packets[i]
+            off += chunk_len
 
-        print(f"pack() {len(payload)=} {self.is_crypted=}")
         if self.is_crypted:
-            ret += self.crypt(payload)
-        else:
-            ret += payload
+            payload = self.crypt(payload)
 
-        print(f"pack() {len(ret)=}")
+        sz = len(payload)
+        ret = bytearray(sz + 2)
+        ret[:2] = struct.pack("!H", self.send_packet_number)
+        ret[2:] = payload
+
         self.packets = self.packets[fit_it:]
         return ret
 
@@ -66,55 +69,49 @@ class PacketProcessor:
         bts = struct.pack("!H", received_packet_number)
         return self.pack_chunk(bts, PacketType.ACK)
 
-    def get_packet_number(self, packet: bytes):
+    @staticmethod
+    def get_packet_number(packet: bytes):
         total_len = len(packet)
         if total_len < 2:
             return None
 
         packet_number, = struct.unpack("!H", packet[0:2])
-        i = 2
-
-        if self.is_crypted:
-            return packet_number
-
-        while i < total_len:
-            if i + 3 > total_len:
-                return None
-
-            chunk_len, = struct.unpack("!H", packet[i:i+2])
-            next_i = i+3+chunk_len
-            if next_i > total_len:
-                return None
-            i = next_i
-
         return packet_number
 
     def parse(self, packet: bytes):
         packet_number, = struct.unpack("!H", packet[0:2])
         i = 2
 
-        print(f"parse() {len(packet)=} {self.is_crypted=}")
         if self.is_crypted:
             payload = self.decrypt(packet[i:], packet_number)
             if payload is None:
-                print(f"parse() can't decrypt {packet_number=} {len(payload)=}")
-                return
-            self.iparse(payload, 0)
+                return False
+            return self.iparse(payload, 0)
         else:
-            self.iparse(packet, i)
+            return self.iparse(packet, i)
 
-    def iparse(self, packet, i):
+    def iparse(self, packet, offset):
         total_len = len(packet)
-        print(f'iparse() {total_len=} {i=}')
+
+        i = offset
+        while i < total_len:
+            if i + 3 > total_len:
+                return False
+
+            chunk_len, = struct.unpack("!H", packet[i:i+2])
+            next_i = i+3+chunk_len
+            if next_i > total_len:
+                return False
+            i = next_i
+
+        i = offset
         while i+4 <= total_len:
             chunk_len, = struct.unpack("!H", packet[i:i+2])
-            print(f'iparse() {i=} {chunk_len=}')
             next_i = i+3+chunk_len
             if next_i > total_len:
                 break
 
             chunk_type = packet[i+2]
-            print(f'iparse() {chunk_type=}')
 
             try:
                 chunk = packet[i+3:i+3+chunk_len]
@@ -131,6 +128,8 @@ class PacketProcessor:
                 print(e)
 
             i = next_i
+
+        return True
 
     def crypt(self, bts):
         return bts

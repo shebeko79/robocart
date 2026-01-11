@@ -12,7 +12,7 @@ import tracker
 
 UDP_PORT = 5005
 IMG_NO_ACK_TIMEOUT = 1500
-STATE_SEND_PERIOD = 5
+STATE_SEND_PERIOD = 5000
 CONNECTION_EXPIRE_TIMEOUT = 60
 
 
@@ -131,6 +131,7 @@ class UdpServer(PacketProcessor):
                 self.packets.append(bts)
 
         if self.require_state_answer or tm >= self.last_state_send_time + STATE_SEND_PERIOD:
+            #print(f'do_send() send state: {self.require_state_answer=} {tm=} {tm >= self.last_state_send_time + STATE_SEND_PERIOD}')
             bts = self.pack_state()
             if bts is not None:
                 self.require_state_answer = False
@@ -153,18 +154,20 @@ class UdpServer(PacketProcessor):
 
         jpg = img.to_jpeg(self.jpeg_quality)
         if not jpg:
-            return
+            return None
 
         bts = jpg.to_bytes()
         if len(bts) > self.MAX_CHUNK_SIZE:
-            self.jpeg_quality -= 5
+            self.jpeg_quality -= 1
             if self.jpeg_quality < 5:
                 self.jpeg_quality = 5
-            return
+            #print(f'pack_img() decrease quality: {len(bts)=} {self.jpeg_quality=}')
+            return None
         elif len(bts) < self.MAX_CHUNK_SIZE*0.8:
-            self.jpeg_quality += 5
-            if self.jpeg_quality > 95:
-                self.jpeg_quality = 95
+            self.jpeg_quality += 1
+            if self.jpeg_quality > 85:
+                self.jpeg_quality = 85
+            #print(f'pack_img() increase quality: {len(bts)=} {self.jpeg_quality=}')
 
         return self.pack_chunk(jpg.to_bytes(), PacketType.JPG)
 
