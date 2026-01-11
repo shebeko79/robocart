@@ -79,6 +79,13 @@ class MainWindow(QMainWindow):
         self.host_name = config_dict["host_name"]
         self.udp_port = config_dict["udp_port"]
 
+    @staticmethod
+    def remove_action(buttons, action_name):
+        for b in buttons:
+            if b['caption'] == action_name:
+                buttons.remove(b)
+        return buttons
+
     def on_json_received(self, js):
         voltage = js['voltage']
         if voltage is not None:
@@ -95,6 +102,10 @@ class MainWindow(QMainWindow):
 
             accept_click = js['accept_click']
             accept_rectangle = js['accept_rectangle']
+
+            if state_name == 'main':
+                buttons = self.remove_action(buttons, 'Pan')
+                buttons = self.remove_action(buttons, 'Move')
 
             self.mainWidget.set_buttons(buttons)
             self.mainWidget.cur_state = js['state_name']
