@@ -191,14 +191,11 @@ class UdpServer(PacketProcessor):
         return self.pack_json(cur_state)
 
     def crypt(self, bts):
-        t = time.time_ms()
-        ret = self.aes.crypt(bts, self.send_packet_number)
-        t = time.time_ms() - t
-        print(f'{t=} {len(bts)=} {len(ret)=}')
+        ret = self.aes.crypt(bts)
         return ret
 
     def decrypt(self, bts, packet_number):
-        return self.aes.decrypt(bts, packet_number)
+        return self.aes.decrypt(bts)
 
     def process_ack(self, ack_packet_number):
         self.last_ack_packet_number = ack_packet_number

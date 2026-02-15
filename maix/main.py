@@ -48,7 +48,7 @@ def main_init():
 
     sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
     sock.bind(('', udp_server.UDP_PORT))
-    udp_serv = udp_server.UdpServer(sock)
+    udp_serv = udp_server.UdpServer(sock, udp_key)
 
     watch_dog.init()
 

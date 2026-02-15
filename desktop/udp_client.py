@@ -126,10 +126,10 @@ class UdpClient(PacketProcessor):
                 self.last_received_packet_number = pack_n
 
     def crypt(self, bts):
-        return self.aes.crypt(bts, self.send_packet_number)
+        return self.aes.crypt(bts)
 
     def decrypt(self, bts, packet_number):
-        return self.aes.decrypt(bts, packet_number)
+        return self.aes.decrypt(bts)
 
     def process_json(self, js):
         self.json_sig.emit(js)
