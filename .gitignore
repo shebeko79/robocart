@@ -12,3 +12,5 @@ fp-info-cache
 *.kicad_prl
 telegram_bot.py
 *.key
+wifi.pass.*
+wifi.ssid.*
