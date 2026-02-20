@@ -14,3 +14,4 @@ telegram_bot.py
 *.key
 wifi.pass.*
 wifi.ssid.*
+udprelay_cfg.py

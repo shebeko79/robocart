@@ -14,17 +14,16 @@ UDP_PORT = 5005
 IMG_NO_ACK_TIMEOUT = 1500
 STATE_SEND_PERIOD = 5000
 CONNECTION_EXPIRE_TIMEOUT = 60
+GET_ADDRESS_TIMEOUT = 60
 
 
-class UdpServer(PacketProcessor):
-    def __init__(self, sock: socket, key=None):
+class UdpConnection(PacketProcessor):
+    def __init__(self, key=None):
         super().__init__()
         self.img: image.Image = None
         self.require_state_answer = False
         self.jpeg_quality = 50
 
-        self.sock = sock
-        self.sock.setblocking(False)
         self.last_received_addr = None
         self.last_received_packet_number = 0
 
@@ -338,3 +337,59 @@ class UdpServer(PacketProcessor):
             return
 
         mover.move(speed, pan)
+
+
+class UdpServer(UdpConnection):
+    def __init__(self, sock: socket, key=None):
+        super().__init__(key)
+
+        self.sock = sock
+        self.sock.setblocking(False)
+
+
+class UdpClient(UdpConnection):
+    def __init__(self, host_name, port, key=None):
+        super().__init__(key)
+
+        self.sock: socket.socket = None
+        self.host_name = host_name
+        self.port = port
+        self.addr = None
+        self.last_get_address_time = 0
+
+    def process(self, img):
+        if not self.sock:
+            self.resolve_addr()
+
+        if self.sock:
+            try:
+                self.do_receive()
+                self.do_send(img)
+            except Exception as e:
+                print(f'process(): {e}')
+                self.reset_peer()
+                if self.sock:
+                    self.sock.close()
+                    self.sock = None
+
+    def resolve_addr(self):
+        tm = time.time_s()
+        if tm < self.last_get_address_time + GET_ADDRESS_TIMEOUT:
+            return
+
+        self.last_get_address_time = tm
+        try:
+            res = socket.getaddrinfo(self.host_name, None)
+
+            r = res[0]
+            proto = r[0]
+            self.addr = (r[4][0], self.port)
+
+            if self.sock:
+                self.sock.close()
+
+            self.sock = socket.socket(proto, socket.SOCK_DGRAM)
+            self.sock.setblocking(False)
+            self.last_get_address_time = 0
+        except Exception as e:
+            print(f'resolve_addr: {e}')
