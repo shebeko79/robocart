@@ -41,6 +41,7 @@ def add_sock(send_peer, receive_peer):
 def do_receive(receive_peer, data_peer, read_sel):
     if receive_peer.sock in read_sel:
         data_peer.data_to_send, receive_peer.addr = receive_peer.sock.recvfrom(65535)
+        #print(f'do_receive((): {len(data_peer.data_to_send)=} {receive_peer.addr=}')
 
 
 def do_send(peer, write_sel):

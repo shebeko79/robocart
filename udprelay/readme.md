@@ -1,0 +1,1 @@
+systemctl enable udprelay.service
