@@ -15,6 +15,8 @@ IMG_NO_ACK_TIMEOUT = 1500
 STATE_SEND_PERIOD = 5000
 CONNECTION_EXPIRE_TIMEOUT = 60
 GET_ADDRESS_TIMEOUT = 60
+MIN_JPEG_QUALITY = 5
+MAX_JPEG_QUALITY = 85
 
 
 class UdpConnection(PacketProcessor):
@@ -75,6 +77,7 @@ class UdpConnection(PacketProcessor):
         if pack_n is None:
             return
 
+        #print(f'do_receive()1: {addr=} {self.last_received_addr} {len(data)=} {pack_n=} {self.last_received_packet_number=}')
         if self.last_received_addr is None or self.last_received_addr != addr:
             self.reset_peer()
             self.last_received_addr = addr
@@ -83,10 +86,10 @@ class UdpConnection(PacketProcessor):
                 not (pack_n < 64 and self.last_received_packet_number > 65536-64):
             return
 
-        self.last_received_time = time.time_s()
-        track_utils.last_request_time = time.time_s()
-        self.last_received_packet_number = pack_n
-        self.parse(data)
+        if self.parse(data):
+            self.last_received_time = time.time_s()
+            track_utils.last_request_time = self.last_received_time
+            self.last_received_packet_number = pack_n
 
     def do_send(self, img):
         if self.last_received_addr is None:
@@ -139,7 +142,8 @@ class UdpConnection(PacketProcessor):
 
         if is_ready_to_send and len(self.packets) > 0:
             bts = self.pack()
-            self.sock.sendto(bts, self.last_received_addr)
+            ret = self.sock.sendto(bts, self.last_received_addr)
+            #print(f'do_send(): {len(bts)=} {self.last_received_addr=} {ret=}')
 
     def pack_img(self) -> bytes:
         if not self.img:
@@ -158,15 +162,15 @@ class UdpConnection(PacketProcessor):
         bts = jpg.to_bytes()
         if len(bts) > self.MAX_CHUNK_SIZE:
             self.jpeg_quality -= 1
-            if self.jpeg_quality < 5:
-                self.jpeg_quality = 5
-            #print(f'pack_img() decrease quality: {len(bts)=} {self.jpeg_quality=}')
+            if self.jpeg_quality < MIN_JPEG_QUALITY:
+                self.jpeg_quality = MIN_JPEG_QUALITY
+            print(f'pack_img() decrease quality: {len(bts)=} {self.jpeg_quality=}')
             return None
         elif len(bts) < self.MAX_CHUNK_SIZE*0.8:
             self.jpeg_quality += 1
-            if self.jpeg_quality > 85:
-                self.jpeg_quality = 85
-            #print(f'pack_img() increase quality: {len(bts)=} {self.jpeg_quality=}')
+            if self.jpeg_quality > MAX_JPEG_QUALITY:
+                self.jpeg_quality = MAX_JPEG_QUALITY
+            print(f'pack_img() increase quality: {len(bts)=} {self.jpeg_quality=}')
 
         return self.pack_chunk(jpg.to_bytes(), PacketType.JPG)
 
@@ -391,5 +395,10 @@ class UdpClient(UdpConnection):
             self.sock = socket.socket(proto, socket.SOCK_DGRAM)
             self.sock.setblocking(False)
             self.last_get_address_time = 0
+            self.last_received_addr = self.addr
         except Exception as e:
             print(f'resolve_addr: {e}')
+
+    def reset_peer(self):
+        super().reset_peer()
+        self.last_received_addr = self.addr
