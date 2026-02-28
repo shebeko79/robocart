@@ -19,8 +19,6 @@ class UdpClient(PacketProcessor):
         self.json_sig = json_sig
         self.jpeg_sig = jpeg_sig
         self.received_candidate_packet_number = 0
-        self.last_received_packet_number = 0
-        self.last_received_time = 0
         self.last_send_time = 0
         self.thr = None
         self.thread_alive = True
@@ -111,6 +109,7 @@ class UdpClient(PacketProcessor):
             if not self.is_same_address(addr, self.addr):
                 continue
 
+            #print(f'_loop(): {len(data)=} {addr=}')
             pack_n = self.get_packet_number(data)
             if pack_n is None:
                 continue
