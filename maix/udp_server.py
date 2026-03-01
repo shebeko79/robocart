@@ -11,12 +11,13 @@ import track_utils
 import tracker
 
 UDP_PORT = 5005
-IMG_NO_ACK_TIMEOUT = 1500
+IMG_NO_ACK_TIMEOUT = 3000
 STATE_SEND_PERIOD = 5000
 CONNECTION_EXPIRE_TIMEOUT = 60
 GET_ADDRESS_TIMEOUT = 60
 MIN_JPEG_QUALITY = 5
-MAX_JPEG_QUALITY = 85
+MAX_JPEG_QUALITY = 60
+EXPECTED_JPEG_SIZE = 40000
 
 
 class UdpConnection(PacketProcessor):
@@ -120,10 +121,10 @@ class UdpConnection(PacketProcessor):
         tm = time.time_ms()
         self.img = img
         is_send_image = self.img is not None and is_ready_to_send and len(self.packets) == 0 and\
-                        (self.last_ack_packet_number == self.last_image_packet or
+                        (self.last_ack_packet_number >= self.last_image_packet or
                          tm >= self.last_image_send_time + IMG_NO_ACK_TIMEOUT)
 
-        #print(f'{is_send_image}: {is_ready_to_send=} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=}')
+        #print(f'{is_send_image}: {is_ready_to_send=} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=} {self.send_packet_number=} {self.send_partial_offset=}')
         if is_send_image:
             pck = self.pack_img()
             if pck is not None:
@@ -159,17 +160,17 @@ class UdpConnection(PacketProcessor):
             return None
 
         bts = jpg.to_bytes()
-        if len(bts) > self.MAX_CHUNK_SIZE:
+        if len(bts) > EXPECTED_JPEG_SIZE:
             self.jpeg_quality -= 1
             if self.jpeg_quality < MIN_JPEG_QUALITY:
                 self.jpeg_quality = MIN_JPEG_QUALITY
-            print(f'pack_img() decrease quality: {len(bts)=} {self.jpeg_quality=}')
+            #print(f'pack_img() decrease quality: {len(bts)=} {self.jpeg_quality=}')
             return None
-        elif len(bts) < self.MAX_CHUNK_SIZE*0.8:
+        elif len(bts) < EXPECTED_JPEG_SIZE*0.8:
             self.jpeg_quality += 1
             if self.jpeg_quality > MAX_JPEG_QUALITY:
                 self.jpeg_quality = MAX_JPEG_QUALITY
-            print(f'pack_img() increase quality: {len(bts)=} {self.jpeg_quality=}')
+            #print(f'pack_img() increase quality: {len(bts)=} {self.jpeg_quality=}')
 
         return self.pack_chunk(jpg.to_bytes(), PacketType.JPG)
 
