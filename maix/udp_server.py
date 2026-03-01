@@ -82,8 +82,7 @@ class UdpConnection(PacketProcessor):
             self.reset_peer()
             self.last_received_addr = addr
             self.last_received_packet_number = pack_n
-        elif self.last_received_packet_number >= pack_n and \
-                not (pack_n < 64 and self.last_received_packet_number > 65536-64):
+        elif self.is_packet_too_old(pack_n):
             return
 
         if self.parse(data):

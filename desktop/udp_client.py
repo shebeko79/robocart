@@ -114,8 +114,7 @@ class UdpClient(PacketProcessor):
             if pack_n is None:
                 continue
 
-            if self.last_received_packet_number >= pack_n and \
-                    not (pack_n < 64 and self.last_received_packet_number > 65536 - 64):
+            if self.is_packet_too_old(pack_n):
                 continue
 
             self.received_candidate_packet_number = pack_n

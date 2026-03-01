@@ -18,7 +18,7 @@ class PacketProcessor:
         self.packets = []
         self.is_crypted = False
         self.send_partial_offset = 0
-        self.receive_partial_chunk = []
+        self.receive_partial_chunk = b''
         self.last_received_packet_number = 0
         self.last_received_time = 0
 
@@ -117,6 +117,10 @@ class PacketProcessor:
         packet_number, = struct.unpack("!H", packet[0:2])
         return packet_number
 
+    def is_packet_too_old(self, pack_n):
+        return self.last_received_packet_number >= pack_n and \
+                not (pack_n < 64 and self.last_received_packet_number > 65536 - 64)
+
     def parse(self, packet: bytes):
         if len(packet) < 3:
             return False
@@ -138,7 +142,7 @@ class PacketProcessor:
 
     def iparse(self, packet, offset, is_next_partial):
         if not is_next_partial:
-            self.receive_partial_chunk = []
+            self.receive_partial_chunk = b''
         received_partial_len = len(self.receive_partial_chunk)
 
         total_len = len(packet)
@@ -155,22 +159,22 @@ class PacketProcessor:
                 chunk_len -= received_partial_len
 
             next_i = i+5+chunk_len
-            if item == 0:
-                if i+chunk_len < total_len < i+5+chunk_len:
-                    return False
-            else:
-                if next_i > total_len:
-                    return False
+            if next_i > total_len and item != 0:
+                return False
 
             i = next_i
             item += 1
 
         i = offset
+        item = 0
+        #print(f'iparse()2: {is_next_partial=} {received_partial_len=} {total_len=} {i=}')
         while i+5 <= total_len:
             chunk_len, = struct.unpack("!I", packet[i:i+4])
 
             if item == 0:
                 chunk_len -= received_partial_len
+
+            #print(f'iparse()3: {chunk_len=}')
 
             next_i = i+5+chunk_len
             if next_i > total_len and item != 0:
@@ -180,11 +184,13 @@ class PacketProcessor:
             chunk_type = packet[i+4]
 
             if item == 0:
-                if i+chunk_len > total_len:
+                if next_i > total_len:
                     self.receive_partial_chunk += chunk
+                    #print(f'iparse()5: {len(self.receive_partial_chunk)=}')
                     return True
                 chunk = self.receive_partial_chunk + chunk
-                self.receive_partial_chunk = []
+                self.receive_partial_chunk = b''
+                received_partial_len = 0
 
             try:
                 if chunk_type == PacketType.JSON:
