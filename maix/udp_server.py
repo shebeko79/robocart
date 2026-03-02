@@ -141,10 +141,20 @@ class UdpConnection(PacketProcessor):
                 self.last_state_send_time = tm
                 self.packets.append(pck)
 
-        if is_ready_to_send and len(self.packets) > 0:
+        while is_ready_to_send and len(self.packets) > 0:
             bts = self.pack()
             ret = self.sock.sendto(bts, self.last_received_addr)
             #print(f'do_send(): {len(bts)=} {self.last_received_addr=} {ret=}')
+            if ret != len(bts):
+                break
+
+            sel = select.select([], [self.sock], [self.sock], 0)
+
+            if len(sel[2]) != 0:
+                print('UdpServer.do_send() socket error after sending')
+                break
+
+            is_ready_to_send = len(sel[1]) > 0
 
     def pack_img(self) -> bytes:
         if not self.img:
