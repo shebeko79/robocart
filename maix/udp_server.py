@@ -16,8 +16,9 @@ STATE_SEND_PERIOD = 5000
 CONNECTION_EXPIRE_TIMEOUT = 60
 GET_ADDRESS_TIMEOUT = 60
 MIN_JPEG_QUALITY = 5
-MAX_JPEG_QUALITY = 60
+MAX_JPEG_QUALITY = 75
 EXPECTED_JPEG_SIZE = 40000
+MAX_JPEG_SIZE = EXPECTED_JPEG_SIZE*2
 
 
 class UdpConnection(PacketProcessor):
@@ -160,13 +161,15 @@ class UdpConnection(PacketProcessor):
             return None
 
         bts = jpg.to_bytes()
-        if len(bts) > EXPECTED_JPEG_SIZE:
+        len_bts = len(bts)
+        if len_bts > EXPECTED_JPEG_SIZE:
             self.jpeg_quality -= 1
             if self.jpeg_quality < MIN_JPEG_QUALITY:
                 self.jpeg_quality = MIN_JPEG_QUALITY
             #print(f'pack_img() decrease quality: {len(bts)=} {self.jpeg_quality=}')
-            return None
-        elif len(bts) < EXPECTED_JPEG_SIZE*0.8:
+            if len_bts > MAX_JPEG_SIZE:
+                return None
+        elif len_bts < EXPECTED_JPEG_SIZE:
             self.jpeg_quality += 1
             if self.jpeg_quality > MAX_JPEG_QUALITY:
                 self.jpeg_quality = MAX_JPEG_QUALITY
