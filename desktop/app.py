@@ -19,8 +19,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.host_name = "robocart"
+        self.local_name = "robocart"
         self.udp_port = 5005
+        self.relay_host = ""
+        self.relay_port = self.udp_port
         self.load_config()
 
         self.mainWidget = MainWidget(self)
@@ -43,7 +45,16 @@ class MainWindow(QMainWindow):
             with open(UDP_KEY_FILE, 'rb') as file:
                 udp_key = file.read()
 
-        self.udp = UdpClient(self.host_name, self.udp_port, self.json_received, self.jpeg_received, udp_key)
+        if self.local_name != "":
+            self.udp = UdpClient(self.local_name, self.udp_port, self.json_received, self.jpeg_received, udp_key)
+            try:
+                self.udp.resolve_addr()
+            except Exception as e:
+                print(e)
+
+        if self.udp.addr is None:
+            self.udp = UdpClient(self.relay_host, self.relay_port, self.json_received, self.jpeg_received, udp_key)
+
         self.udp_timer = QTimer()
         self.udp_timer.timeout.connect(self.process_udp)
         self.udp_timer.start(250)
@@ -76,8 +87,10 @@ class MainWindow(QMainWindow):
             except ValueError:
                 config_dict = {}
 
-        self.host_name = config_dict["host_name"]
+        self.local_name = config_dict["local_name"]
         self.udp_port = config_dict["udp_port"]
+        self.relay_host = config_dict["relay_host"]
+        self.relay_port = config_dict["relay_port"]
 
     @staticmethod
     def remove_action(buttons, action_name):

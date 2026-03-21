@@ -51,7 +51,10 @@ class UdpClient(PacketProcessor):
             self.thr = None
 
         if self.addr is None:
-            self.resolve_addr()
+            try:
+                self.resolve_addr()
+            except Exception as e:
+                print(e)
             if self.addr is None:
                 return
 
