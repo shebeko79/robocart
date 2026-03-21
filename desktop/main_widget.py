@@ -34,6 +34,7 @@ class MainWidget(QWidget):
         self.camRightMostBtn = QPushButton('> (E)', self)
         self.camBackMostBtn = QPushButton('^ (Z)', self)
         self.camFrontMostBtn = QPushButton('v (C)', self)
+        self.camRelease = QPushButton('Free (V)', self)
 
         self.cartForwardBtn = QPushButton('^', self)
         self.cartBackwardBtn = QPushButton('v', self)
@@ -64,6 +65,7 @@ class MainWidget(QWidget):
         self.camRightMostBtn.clicked.connect(self.fire_cam_right_most)
         self.camBackMostBtn.clicked.connect(self.fire_cam_back_most)
         self.camFrontMostBtn.clicked.connect(self.fire_cam_front_most)
+        self.camRelease.clicked.connect(self.fire_cam_release)
 
         self.cartForwardBtn.clicked.connect(self.fire_cart_forward)
         self.cartBackwardBtn.clicked.connect(self.fire_cart_backward)
@@ -116,7 +118,7 @@ class MainWidget(QWidget):
         hlayout = QHBoxLayout()
         hlayout.addStretch()
         hlayout.addWidget(self.camFrontMostBtn)
-        hlayout.addStretch()
+        hlayout.addWidget(self.camRelease)
         vlayout.addLayout(hlayout)
 
         cam_views_group_box = QGroupBox("Camera views")
@@ -222,8 +224,8 @@ class MainWidget(QWidget):
         js = {'cmd': 'moveto_cam', 'pan': pan, 'tilt': tilt}
         self.app.udp.send_json(js)
 
-    def moveto_cam(self, pan, tilt):
-        js = {'cmd': 'moveto_cam', 'pan': pan, 'tilt': tilt}
+    def release_cam(self):
+        js = {'cmd': 'release_cam'}
         self.app.udp.send_json(js)
 
     def move_cart(self, speed, pan):
@@ -285,6 +287,9 @@ class MainWidget(QWidget):
     def fire_cam_front_most(self):
         self.moveto_cam('CURRENT', 'MAX')
 
+    def fire_cam_release(self):
+        self.release_cam()
+
     def set_image(self, jpg):
         self.image.init(jpg)
 
@@ -317,6 +322,8 @@ class MainWidget(QWidget):
             self.fire_cam_back_most()
         elif k == Qt.Key_C:
             self.fire_cam_front_most()
+        elif k == Qt.Key_V:
+            self.fire_cam_release()
         elif k == Qt.Key_Right:
             self.fire_cart_right()
         elif k == Qt.Key_Left:

@@ -217,8 +217,10 @@ def init():
     srv.set_speed(PAN_ID, 500)
     srv.set_speed(TILT_ID, 500)
 
-    set_pan(Pan.CENTER)
-    set_tilt(Tilt.FRONT)
+    #set_pan(Pan.CENTER)
+    #set_tilt(Tilt.FRONT)
+    #time.sleep_ms(500)
+    release()
 
 
 def release():

@@ -238,6 +238,8 @@ class UdpConnection(PacketProcessor):
             self.moveto_cam(js)
         elif cmd == "move":
             self.move(js)
+        elif cmd == "release_cam":
+            self.release_cam(js)
 
     def click(self, js):
         state_name = js['state_name']
@@ -357,6 +359,11 @@ class UdpConnection(PacketProcessor):
             return
 
         mover.move(speed, pan)
+
+    def release_cam(self, js):
+        self.require_state_answer = True
+        pan_tilt.release()
+
 
 
 class UdpServer(UdpConnection):

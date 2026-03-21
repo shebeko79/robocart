@@ -349,8 +349,8 @@ class PanTiltState(BaseState):
 
     def enter(self):
         self.buttons = [Button("U"), Button("<"), Button(">"), Button("D"),
-                        Button("F"), Button("B"), Button("T"), Button("L"), Button("R"),
-                        Button("Back", MainState.state_name)]
+                        Button("F"), Button("B"), Button("T"), Button("L"), Button("R"), Button("Fr"),
+                        Button("Bck", MainState.state_name)]
 
     def leave(self):
         pan_tilt.release()
@@ -385,6 +385,8 @@ class PanTiltState(BaseState):
         elif btn.caption == "R":
             pan_tilt.set_pan(pan_tilt.Pan.RIGHT)
             pan_tilt.set_tilt(pan_tilt.Tilt.FRONT)
+        elif btn.caption == "Fr":
+            pan_tilt.release()
 
 
 def init():
