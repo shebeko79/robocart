@@ -60,6 +60,10 @@ class UdpConnection(PacketProcessor):
         self.last_received_time = time.time_s()
         self.packets = []
 
+    def is_connection_expired(self):
+        tm = time.time_s()
+        return tm > self.last_received_time + CONNECTION_EXPIRE_TIMEOUT
+
     def do_receive(self):
         sel = select.select([self.sock], [], [self.sock], 0)
 
@@ -67,10 +71,8 @@ class UdpConnection(PacketProcessor):
             print('UdpServer.do_receive() socket error')
             return
 
-        tm = time.time_s()
-
         if len(sel[0]) == 0:
-            if tm > self.last_received_time + CONNECTION_EXPIRE_TIMEOUT:
+            if self.is_connection_expired():
                 self.reset_peer()
             return
 
@@ -121,11 +123,12 @@ class UdpConnection(PacketProcessor):
 
         tm = time.time_ms()
         self.img = img
-        is_send_image = self.img is not None and is_ready_to_send and len(self.packets) == 0 and\
+        is_send_image = self.img is not None and is_ready_to_send and len(self.packets) == 0 and \
+                        not self.is_connection_expired() and \
                         (self.last_ack_packet_number >= self.last_image_packet or
                          tm >= self.last_image_send_time + IMG_NO_ACK_TIMEOUT)
 
-        #print(f'{is_send_image}: {is_ready_to_send=} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=} {self.send_packet_number=} {self.send_partial_offset=}')
+        #print(f'{is_send_image}: {is_ready_to_send} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=} {self.send_packet_number=} {self.send_partial_offset=}')
         if is_send_image:
             pck = self.pack_img()
             if pck is not None:
@@ -134,7 +137,7 @@ class UdpConnection(PacketProcessor):
                 self.packets.append(pck)
 
         if self.require_state_answer or tm >= self.last_state_send_time + STATE_SEND_PERIOD:
-            #print(f'do_send() send state: {self.require_state_answer=} {tm=} {tm >= self.last_state_send_time + STATE_SEND_PERIOD}')
+            #print(f'do_send() send state: {self.require_state_answer=} {tm=} {self.last_state_send_time=}')
             pck = self.pack_state()
             if pck is not None:
                 self.require_state_answer = False
@@ -373,6 +376,7 @@ class UdpClient(UdpConnection):
         self.port = port
         self.addr = None
         self.last_get_address_time = 0
+        self.last_received_time = 0
 
     def process(self, img):
         if not self.sock:
@@ -413,5 +417,9 @@ class UdpClient(UdpConnection):
             print(f'resolve_addr: {e}')
 
     def reset_peer(self):
+        tmp_send_time = self.last_state_send_time
+
         super().reset_peer()
         self.last_received_addr = self.addr
+        self.last_received_time = 0
+        self.last_state_send_time = tmp_send_time

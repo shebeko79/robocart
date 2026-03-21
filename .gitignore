@@ -15,3 +15,4 @@ telegram_bot.py
 wifi.pass.*
 wifi.ssid.*
 udprelay_cfg.py
+*.bak
