@@ -6,7 +6,7 @@ import queue
 import socket
 import select
 
-UDP_IP = "192.168.33.10"
+UDP_IP = "192.168.33.9"
 UDP_PORT = 5005
 
 

@@ -3,7 +3,7 @@ import socket
 import select
 import numpy as np
 
-UDP_IP = "192.168.33.6"
+UDP_IP = "192.168.33.9"
 UDP_PORT = 5005
 
 
