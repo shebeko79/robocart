@@ -1,6 +1,8 @@
 ### How not to build a robot:
 [![How not to build a robot](https://img.youtube.com/vi/LK63FLP5XUo/0.jpg)](https://youtu.be/LK63FLP5XUo)
 
+https://youtu.be/LK63FLP5XUo
+
 ### References:
 [Field Oriented Control (FOC) for stock hoverboards](https://github.com/EFeru/hoverboard-firmware-hack-FOC)
 
