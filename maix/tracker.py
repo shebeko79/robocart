@@ -9,7 +9,7 @@ NANO_MODEL_PATH = "/root/models/nanotrack.mud"
 yolo_model = nn.YOLO11(model="/root/models/yolo11n_320_room.mud")
 yolo_objects = []
 yolo_trackers = []
-YOLO_LOCKED = 0.8
+YOLO_CONFIDENT = 0.8
 
 nanotrack_objects = []
 
@@ -66,6 +66,7 @@ class YoloTrackObject(TrackObject):
     def track(self, objects):
         sel = None
         sel_d = 0.0
+        sel_confident = False
         for o in objects:
             if o.class_id != self.class_id:
                 continue
@@ -73,10 +74,12 @@ class YoloTrackObject(TrackObject):
             dx = self.x - o.x
             dy = self.y - o.y
             d = dx*dx + dy*dy
+            confident = o.score >= YOLO_CONFIDENT
 
-            if sel is None or d < sel_d:
+            if sel is None or d < sel_d or (confident and not sel_confident):
                 sel = o
                 sel_d = d
+                sel_confident = confident
 
         if sel:
             self.update(sel)
@@ -91,7 +94,7 @@ class YoloTrackObject(TrackObject):
         self.score = obj.score
 
     def is_locked(self):
-        return self.score > YOLO_LOCKED
+        return self.score > 0.0
 
     def center(self):
         return [(self.x+self.w/2)/yolo_model.input_width()*CAM_SIZE[0],
@@ -159,7 +162,7 @@ def draw_trackers(img: image.Image):
         w = int(o.w * iw / yolo_model.input_width())
         h = int(o.h * ih / yolo_model.input_height())
 
-        if o.score > YOLO_LOCKED:
+        if o.score > YOLO_CONFIDENT:
             cl = hi_cl
         else:
             cl = gray_cl
