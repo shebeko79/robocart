@@ -81,12 +81,18 @@ start() {
 			echo "Check2 IP:"
 			echo $newip
 		fi
+		
+		wpa_cli -i wlan0 -a /bin/wifi_action.sh -B -P /run/udhcpc.wpa_cli.pid
 
 		if [ ! -z "${newip}" ]
 		then
 			exit 0
 		fi
-		stop
+
+		if [ -e /boot/wifi.ap ]
+		then
+			stop
+		fi
 	fi
 	
 	if [ -e /boot/wifi.ap ]
@@ -158,6 +164,11 @@ stop() {
 	ps -ef|grep hostapd|grep -v grep|awk '{print $1}'|xargs kill -2 || true
 	ps -ef|grep "udhcpd -S /etc/udhcpd.wlan0.conf" |grep -v grep|awk '{print $1}'|xargs kill -2 || true
 	killall wpa_supplicant || true
+	if [ -e /run/udhcpc.wpa_cli.pid ]
+	then
+		kill `cat /run/udhcpc.wpa_cli.pid` || true
+		rm -f /run/udhcpc.wpa_cli.pid
+	fi
 	if [ -e /run/udhcpc.wlan0.pid ]
 	then
 		kill `cat /run/udhcpc.wlan0.pid` || true
