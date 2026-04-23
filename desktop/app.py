@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import time
 from PyQt5.QtCore import pyqtSignal, QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from PyQt5.QtWidgets import QHBoxLayout,  QLabel
@@ -52,13 +53,14 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 print(e)
 
-        if self.udp.addr is None:
+        if self.local_name == "" or self.udp.addr is None:
             self.udp = UdpClient(self.relay_host, self.relay_port, self.json_received, self.jpeg_received, udp_key)
 
         self.udp_timer = QTimer()
         self.udp_timer.timeout.connect(self.process_udp)
         self.udp_timer.start(250)
         self.udp_alive = False
+        self.udp_time_delta = 0
 
         self.size_fixed = False
 
@@ -141,10 +143,13 @@ class MainWindow(QMainWindow):
     def process_udp(self):
         self.udp.process()
         alive = self.udp.is_alive()
-        if alive != self.udp_alive:
+        time_delta = int(time.time())-self.udp.last_received_time
+
+        if alive != self.udp_alive or (alive and self.udp_time_delta != time_delta):
             self.udp_alive = alive
             if alive:
-                label = 'Connected to ' + self.udp.addr[0]
+                label = f'{self.udp.addr[0]} delay {time_delta}s'
+                self.udp_time_delta = time_delta
             else:
                 label = 'Not connected'
             self.ConnectionLabel.setText(label)
