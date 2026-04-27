@@ -144,7 +144,45 @@ void MotorSpeed::fail_safe()
   m_dst_speed = 0.0;
   m_motor.brake();
   m_brake_state = bs_fail_safe;
+  m_distance_mode = false;
   reset_pid();
+}
+
+void MotorSpeed::set_distance(float speed, float distance)
+{
+  if(speed == 0.0)
+    return set_speed(speed);
+  
+  m_dst_speed = constrain(speed, -MAX_SPEED, MAX_SPEED);
+  m_distance = static_cast<int>(distance*WHEEL_PULSES_PER_METER);
+  m_start_distance_tick = m_motor.get_ticks_count();
+  m_distance_mode = true;
+}
+
+bool MotorSpeed::get_path(double& cur_dist) const
+{
+  if(m_distance_mode)
+    cur_dist = (m_motor.get_ticks_count() - m_start_distance_tick) / WHEEL_PULSES_PER_METER;
+  return m_distance_mode;
+}
+
+void MotorSpeed::speed_pin_isr()
+{
+  m_motor.speed_pin_isr();
+  if(!m_distance_mode)
+    return;
+  
+  int diff = m_motor.get_ticks_count() - m_start_distance_tick;
+  int dx = (m_distance>=0) ? 1.0:-1.0;
+
+  if(diff*dx >= m_distance*dx)
+  {
+    m_distance_mode = false;
+    m_dst_speed = 0.0;
+    m_motor.brake();
+    m_brake_state = bs_distance_reached;
+    reset_pid();
+  }
 }
 
 void MotorSpeed::dump_state(const String& caption, Stream& stream)

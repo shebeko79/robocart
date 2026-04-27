@@ -12,7 +12,8 @@ public:
     bs_zero_speed,
     bs_fail_safe,
     bs_change_direction,
-    bs_speed_compensation
+    bs_speed_compensation,
+    bs_distance_reached
   };
   
 public:
@@ -29,12 +30,19 @@ public:
   void set_speed(float speed)
   {
     m_dst_speed = constrain(speed, -MAX_SPEED, MAX_SPEED);
+    m_distance_mode = false;
   }
 
+  void set_distance(float speed, float distance);
+
+  bool get_path(double& cur_dist) const;
+  
   void apply();
   
   void fail_safe();
   void dump_state(const String& caption, Stream& stream);
+
+  void speed_pin_isr();
 
 private:
   float calc_pwm(float cur_speed, bool &is_brake);
@@ -42,6 +50,9 @@ private:
   
 private:
   volatile float m_dst_speed = 0.0;
+  volatile bool m_distance_mode = false;
+  volatile int m_distance = 0;
+  volatile int m_start_distance_tick = 0;
 
   Motor& m_motor;
 

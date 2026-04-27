@@ -39,6 +39,8 @@ struct DriveRequest
   bool active = false;
   float speed_ms = 0.0;
   float rel_rotation = 0.0;
+  float distance = 0.0;
+  bool use_distance = false;
 };
 
 DriveRequest drive_request;
@@ -53,12 +55,12 @@ void IRAM_ATTR SpeedTimer_ISR()
 
 void IRAM_ATTR left_tick_isr()
 {
-  leftMotor.speed_pin_isr();
+  leftWheel.speed_pin_isr();
 }
 
 void IRAM_ATTR right_tick_isr()
 {
-  rightMotor.speed_pin_isr();
+  rightWheel.speed_pin_isr();
 }
 
 void setup() 
@@ -162,9 +164,45 @@ bool processDriveCommand(const char* buf)
   float rel_rotation=atof(cdiv + 1);
   rel_rotation=constrain(rel_rotation, -1.0, 1.0);
 
+  drive_request = DriveRequest();
   drive_request.active=true;
   drive_request.speed_ms = rel_speed * relative_max_speed;
   drive_request.rel_rotation = rel_rotation;
+
+  last_ms = millis();
+
+  return true;
+}
+
+bool processDistanceCommand(const char* buf)
+{
+  if(buf[0] == 0)
+    return false;
+
+  float rel_speed=atof(buf);
+  rel_speed=constrain(rel_speed, -1.0, 1.0);
+
+  const char* cdiv = strstr (buf,";");
+  if(!cdiv)
+    return false;
+  
+  float rel_rotation=atof(cdiv + 1);
+  rel_rotation=constrain(rel_rotation, -1.0, 1.0);
+
+  cdiv = strstr (cdiv + 1,";");
+  if(!cdiv)
+    return false;
+
+  float distance=atof(cdiv + 1);
+  if(distance<0)
+    return false;
+
+  drive_request = DriveRequest();
+  drive_request.active=true;
+  drive_request.speed_ms = rel_speed * relative_max_speed;
+  drive_request.rel_rotation = rel_rotation;
+  drive_request.distance = distance;
+  drive_request.use_distance = true;
 
   last_ms = millis();
 
@@ -202,6 +240,19 @@ bool processStateCommand(const char* buf, String& answer_params)
   float r = rightMotor.get_speed_meters();
   answer_params =":"+String(v)+";"+String(l)+";"+String(r)+";"+String((int)auto_cmd_blocked);
 
+  double cur_dist = 0.0;
+  bool distance_mode = leftWheel.get_path(cur_dist);
+
+  answer_params += ";";
+  if(distance_mode)
+    answer_params += String(cur_dist);
+
+  distance_mode = rightWheel.get_path(cur_dist);
+
+  answer_params += ";";
+  if(distance_mode)
+    answer_params += String(cur_dist);
+  
   return true;
 }
 
@@ -288,6 +339,10 @@ void processCommand(T& stream, const char* buf,bool blocked)
   {
     res = processDriveCommand(buf);
   }
+  else if(cmd == "distance")
+  {
+    res = processDistanceCommand(buf);
+  }
   else if(cmd == "block")
   {
     res = processBlockCommand(buf);
@@ -299,7 +354,10 @@ void processCommand(T& stream, const char* buf,bool blocked)
   else if(cmd == "state")
   {
     res = processStateCommand(buf,answer_params);
-  }
+
+    if(res && !blocked)
+      last_ms = millis();
+}
   else if(cmd == "sleep")
   {
     res = processSleepCommand(buf);
@@ -348,8 +406,40 @@ void applyDriveRequest(const DriveRequest& dr)
   lspeed = constrain(lspeed, -MAX_SPEED, MAX_SPEED);
   rspeed = constrain(rspeed, -MAX_SPEED, MAX_SPEED);
 
-  leftWheel.set_speed(lspeed);
-  rightWheel.set_speed(rspeed);
+  if(!dr.use_distance)
+  {
+    leftWheel.set_speed(lspeed);
+    rightWheel.set_speed(rspeed);
+  }
+  else
+  {
+    float abs_lspeed = std::abs(lspeed);
+    float abs_rspeed = std::abs(rspeed);
+    
+    float ldistance = 2*dr.distance*abs_lspeed/(abs_lspeed + abs_rspeed);
+    float rdistance = 2*dr.distance*abs_rspeed/(abs_lspeed + abs_rspeed);
+
+    if(lspeed < 0.0)
+      ldistance = -ldistance;
+
+    if(rspeed < 0.0)
+      rdistance = -rdistance;
+
+    // Serial.print(" distance=");
+    // Serial.print(dr.distance,4);
+    // Serial.print(" ldistance=");
+    // Serial.print(ldistance,4);
+    // Serial.print(" rdistance=");
+    // Serial.print(rdistance,4);
+    // Serial.print(" lspeed=");
+    // Serial.print(lspeed,4);
+    // Serial.print(" rspeed=");
+    // Serial.print(rspeed,4);
+    // Serial.println("");
+
+    leftWheel.set_distance(lspeed, ldistance);
+    rightWheel.set_distance(rspeed, rdistance);
+  }
 }
 
 static void motors_task(void *)

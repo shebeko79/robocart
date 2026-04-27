@@ -26,8 +26,9 @@ public:
   void speed_pin_isr();
   void timer_isr(unsigned timer_val);
   
-  inline float get_speed_meters()const{return (DIR_FORWARD? 1.0:-1.0)*m_ticks_count*KPER_SEC/WHEEL_PULSES_PER_METER;}
+  inline float get_speed_meters()const{return (DIR_FORWARD? 1.0:-1.0)*m_speed_ticks_count*KPER_SEC/WHEEL_PULSES_PER_METER;}
   inline State get_state() const{return m_state;}
+  inline int get_ticks_count()const{return (DIR_FORWARD? 1.0:-1.0)*m_ticks_count;}
   
 private:
   const int PWM;
@@ -42,6 +43,7 @@ private:
 
   volatile unsigned m_timer_val=0;
   volatile int m_periods[PERIODS_COUNT];
+  volatile int m_speed_ticks_count = 0;
   volatile int m_ticks_count = 0;
   volatile int m_hall_idx = 0;
 

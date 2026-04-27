@@ -1,7 +1,7 @@
 #pragma once
 #include <math.h>
 
-constexpr int FAIL_SAFE_DELAY = 500;
+constexpr int FAIL_SAFE_DELAY = 750;
 
 constexpr float WHEEL_PULSES_PER_ROTATION=90.0;
 constexpr float WHEEL_DIAMETER=6.5*0.0254; //meters

@@ -25,6 +25,7 @@ void MotorZsx11h::speed_pin_isr()
 
   unsigned t = m_timer_val;
   m_periods[t%PERIODS_COUNT] += d;
+  m_speed_ticks_count += d;
   m_ticks_count += d;
 }
 
@@ -41,7 +42,7 @@ void MotorZsx11h::timer_isr(unsigned timer_val)
 
   if(new_pi != old_pi)
   {
-    m_ticks_count-=m_periods[new_pi];
+    m_speed_ticks_count-=m_periods[new_pi];
     m_periods[new_pi] = 0;
   }
 
