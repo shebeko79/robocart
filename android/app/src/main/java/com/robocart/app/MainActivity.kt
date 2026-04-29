@@ -18,7 +18,7 @@ import com.robocart.presentation.RobocartTheme
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<MainViewModel> {
         val repository = RobotTransportRepositoryImpl(
-            hostName = "robocart.local",
+            context = applicationContext,
             port = 5005,
         )
         MainViewModel.Factory(

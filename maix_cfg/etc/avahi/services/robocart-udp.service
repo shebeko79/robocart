@@ -1,0 +1,9 @@
+<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h Robocart UDP</name>
+  <service>
+    <type>_robocart._udp</type>
+    <port>5005</port>
+  </service>
+</service-group>

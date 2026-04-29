@@ -17,8 +17,9 @@ private const val CONNECTION_EXPIRE_TIMEOUT_SEC = 60L
 private const val KEEP_ALIVE_PERIOD_SEC = 10L
 
 class UdpTransport(
-    private val hostName: String,
+    private val hostName: String?,
     private val port: Int,
+    private val initialAddress: InetSocketAddress? = null,
     private val onJson: (Any?) -> Unit = {},
     private val onJpeg: (ByteArray) -> Unit = {},
     private val onAck: (Int) -> Unit = {},
@@ -35,11 +36,17 @@ class UdpTransport(
 
     init {
         isCrypted = aes != null
+        address = initialAddress
     }
 
     fun start() {
         if (loopJob?.isActive == true) {
             return
+        }
+        if (address != null && socket == null) {
+            socket = DatagramSocket().apply {
+                soTimeout = 50
+            }
         }
         loopJob = scope.launch {
             while (isActive) {
@@ -94,8 +101,9 @@ class UdpTransport(
     }
 
     private fun resolveAddress(): Boolean {
+        val hn = hostName ?: return false
         return try {
-            val resolved = InetSocketAddress(hostName, port)
+            val resolved = InetSocketAddress(hn, port)
             if (resolved.address == null) {
                 return false
             }
