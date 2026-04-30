@@ -30,6 +30,8 @@ class RobotTransportRepositoryImpl(
 ) : RobotTransportRepository {
     private companion object {
         const val TAG = "RobocartTransport"
+        const val RELAY_HOST = "93.127.143.124"
+        const val DISCOVERY_TO_RELAY_TIMEOUT_MS = 3000L
     }
 
     private val appContext: Context = context.applicationContext
@@ -49,6 +51,7 @@ class RobotTransportRepositoryImpl(
 
     private val discoveryActive = AtomicBoolean(false)
     private var discoveryRetryJob: Job? = null
+    private var relayFallbackJob: Job? = null
     private var multicastLock: WifiManager.MulticastLock? = null
 
     private val discoveryListener = object : NsdManager.DiscoveryListener {
@@ -121,6 +124,8 @@ class RobotTransportRepositoryImpl(
             currentAddress = initialAddress
 
             scope.launch {
+                relayFallbackJob?.cancel()
+                relayFallbackJob = null
                 transport?.stop()
                 transport = UdpTransport(
                     hostName = newHostName,
@@ -159,12 +164,15 @@ class RobotTransportRepositoryImpl(
 
         if (transport == null) {
             startDiscoveryIfNeeded()
+            scheduleRelayFallback()
         }
     }
 
     override suspend fun stop() {
         discoveryRetryJob?.cancel()
         discoveryRetryJob = null
+        relayFallbackJob?.cancel()
+        relayFallbackJob = null
 
         discoveryActive.set(false)
         try {
@@ -227,7 +235,39 @@ class RobotTransportRepositoryImpl(
             delay(1500)
             if (transport == null && !discoveryActive.get()) {
                 startDiscoveryIfNeeded()
+                scheduleRelayFallback()
             }
+        }
+    }
+
+    private fun scheduleRelayFallback() {
+        relayFallbackJob?.cancel()
+        relayFallbackJob = scope.launch {
+            delay(DISCOVERY_TO_RELAY_TIMEOUT_MS)
+            if (transport != null) {
+                return@launch
+            }
+
+            val relayAddress = InetSocketAddress(RELAY_HOST, port)
+            currentAddress = relayAddress
+            Log.i(TAG, "LAN service not found, switching to relay host=$RELAY_HOST port=$port")
+
+            transport?.stop()
+            transport = UdpTransport(
+                hostName = RELAY_HOST,
+                port = port,
+                initialAddress = relayAddress,
+                onJson = { payload ->
+                    jsonFlow.tryEmit(payload)
+                    connectedFlow.value = true
+                },
+                onJpeg = { payload ->
+                    jpegFlow.tryEmit(payload)
+                    connectedFlow.value = true
+                },
+                key = key,
+            )
+            transport?.start()
         }
     }
 }
