@@ -3,6 +3,27 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val udpKeySourceFile = rootProject.file("../desktop/udp.key")
+val udpKeyAssetFile = layout.projectDirectory.file("src/main/assets/udp.key")
+
+tasks.register("syncUdpKeyAsset") {
+    group = "build setup"
+    description = "Copies desktop udp.key into app assets when available."
+    doLast {
+        val destination = udpKeyAssetFile.asFile
+        if (udpKeySourceFile.exists()) {
+            destination.parentFile.mkdirs()
+            udpKeySourceFile.copyTo(destination, overwrite = true)
+        } else if (destination.exists()) {
+            destination.delete()
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("syncUdpKeyAsset")
+}
+
 android {
     namespace = "com.robocart.app"
     compileSdk = 35

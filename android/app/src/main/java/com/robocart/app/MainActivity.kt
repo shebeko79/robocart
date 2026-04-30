@@ -1,6 +1,7 @@
 package com.robocart.app
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -16,10 +17,17 @@ import com.robocart.presentation.MainViewModel
 import com.robocart.presentation.RobocartTheme
 
 class MainActivity : ComponentActivity() {
+    private companion object {
+        const val TAG = "MainActivity"
+        const val UDP_KEY_FILE_NAME = "udp.key"
+        const val AES_KEY_SIZE_BYTES = 16
+    }
+
     private val viewModel by viewModels<MainViewModel> {
         val repository = RobotTransportRepositoryImpl(
             context = applicationContext,
             port = 5005,
+            key = loadUdpKeyFromAssets(),
         )
         MainViewModel.Factory(
             observeIncomingJson = ObserveIncomingJsonUseCase(repository),
@@ -54,5 +62,19 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         viewModel.onStop()
         super.onStop()
+    }
+
+    private fun loadUdpKeyFromAssets(): ByteArray? {
+        val keyBytes = runCatching {
+            applicationContext.assets.open(UDP_KEY_FILE_NAME).use { it.readBytes() }
+        }.getOrElse { error ->
+            Log.i(TAG, "UDP key is not bundled in assets: ${error.message}")
+            return null
+        }
+        if (keyBytes.size != AES_KEY_SIZE_BYTES) {
+            Log.w(TAG, "Ignoring udp.key with invalid size=${keyBytes.size}, expected=$AES_KEY_SIZE_BYTES")
+            return null
+        }
+        return keyBytes
     }
 }
