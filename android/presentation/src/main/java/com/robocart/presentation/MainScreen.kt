@@ -45,6 +45,7 @@ import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
@@ -97,28 +98,36 @@ fun MainScreen(
     onImageRectangle: (Float, Float, Float, Float) -> Unit = { _, _, _, _ -> },
 ) {
     Surface(modifier = Modifier.fillMaxSize()) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            VideoPanel(
-                state = state,
-                onImageClick = onImageClick,
-                onImageRectangle = onImageRectangle,
-                modifier = Modifier
-                    .weight(1.4f)
-                    .fillMaxSize()
-            )
-            ControlsPanel(
-                state = state,
-                onControlAction = onControlAction,
-                onDynamicActionClick = onDynamicActionClick,
+            Row(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxSize()
-            )
+            ) {
+                VideoPanel(
+                    state = state,
+                    onImageClick = onImageClick,
+                    onImageRectangle = onImageRectangle,
+                    modifier = Modifier
+                        .weight(1.4f)
+                        .fillMaxSize()
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                ControlsPanel(
+                    state = state,
+                    onControlAction = onControlAction,
+                    onDynamicActionClick = onDynamicActionClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                )
+            }
+            StatusLine(state = state)
         }
     }
 }
@@ -135,8 +144,6 @@ private fun VideoPanel(
     var dragEnd by remember { mutableStateOf<Offset?>(null) }
 
     Column(modifier = modifier) {
-        ConnectionBar(state = state)
-        Spacer(modifier = Modifier.height(8.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -282,36 +289,38 @@ private fun toNormalizedOffset(
 }
 
 @Composable
-private fun ConnectionBar(state: MainScreenState) {
+private fun StatusLine(state: MainScreenState) {
+    val statusColor = if (state.isConnected) Color(0xFF2E7D32) else Color(0xFFFF9800)
+    val hasMessage = state.message.isNotBlank() && state.message != "No message"
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    val statusColor = if (state.isConnected) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(statusColor)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (state.isConnected) "Connected" else "Disconnected",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                Text(text = state.latencyText, style = MaterialTheme.typography.bodyMedium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(statusColor)
+            )
+            Text(text = state.latencyText, style = MaterialTheme.typography.bodyMedium)
+            Text(text = state.voltageText, style = MaterialTheme.typography.bodyMedium)
+            Text(text = state.stateName, style = MaterialTheme.typography.bodyMedium)
+            if (hasMessage) {
+                Text(
+                    text = state.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(text = "State: ${state.stateName}", style = MaterialTheme.typography.bodyMedium)
-            Text(text = "Voltage: ${state.voltageText}", style = MaterialTheme.typography.bodyMedium)
-            Text(text = state.message, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
