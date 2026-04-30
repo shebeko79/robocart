@@ -1,5 +1,6 @@
 package com.robocart.presentation
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -9,11 +10,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -34,8 +37,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
@@ -97,6 +102,9 @@ fun MainScreen(
     onImageClick: (Float, Float) -> Unit = { _, _ -> },
     onImageRectangle: (Float, Float, Float, Float) -> Unit = { _, _, _, _ -> },
 ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -104,28 +112,54 @@ fun MainScreen(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-            ) {
-                VideoPanel(
-                    state = state,
-                    onImageClick = onImageClick,
-                    onImageRectangle = onImageRectangle,
-                    modifier = Modifier
-                        .weight(1.4f)
-                        .fillMaxSize()
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                ControlsPanel(
-                    state = state,
-                    onControlAction = onControlAction,
-                    onDynamicActionClick = onDynamicActionClick,
+            if (isLandscape) {
+                Row(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxSize()
-                )
+                ) {
+                    VideoPanel(
+                        state = state,
+                        onImageClick = onImageClick,
+                        onImageRectangle = onImageRectangle,
+                        modifier = Modifier
+                            .weight(1.4f)
+                            .fillMaxSize()
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    ControlsPanel(
+                        state = state,
+                        onControlAction = onControlAction,
+                        onDynamicActionClick = onDynamicActionClick,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    VideoPanel(
+                        state = state,
+                        onImageClick = onImageClick,
+                        onImageRectangle = onImageRectangle,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false)
+                    )
+                    ControlsPanel(
+                        state = state,
+                        onControlAction = onControlAction,
+                        onDynamicActionClick = onDynamicActionClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                }
             }
             StatusLine(state = state)
         }
@@ -439,17 +473,19 @@ private fun Dpad(
     onLeft: () -> Unit,
     onRight: () -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        OutlinedButton(onClick = onUp, modifier = Modifier.width(120.dp)) { Text(upLabel) }
-    }
-    Spacer(modifier = Modifier.height(6.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        OutlinedButton(onClick = onLeft, modifier = Modifier.width(100.dp)) { Text(leftLabel) }
-        OutlinedButton(onClick = onDown, modifier = Modifier.width(120.dp)) { Text(downLabel) }
-        OutlinedButton(onClick = onRight, modifier = Modifier.width(100.dp)) { Text(rightLabel) }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+        Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
+            OutlinedButton(onClick = onLeft) { Text(leftLabel) }
+
+        }
+        Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            OutlinedButton(onClick = onUp) { Text(upLabel) }
+            OutlinedButton(onClick = onDown) { Text(downLabel) }
+        }
+        Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
+            OutlinedButton(onClick = onRight) { Text(rightLabel) }
+        }
     }
 }
 
