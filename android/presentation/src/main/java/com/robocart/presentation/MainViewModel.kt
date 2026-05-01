@@ -161,11 +161,20 @@ class MainViewModel(
         val voltageText = if (voltageValue.isNaN()) "--.-V" else "%.1fV".format(voltageValue)
 
         currentStateName = stateName
+        val dynamicButtons = json.optJSONArray("buttons")
+            .toDynamicButtons()
+            .let { buttons ->
+                if (stateName == "main") {
+                    buttons.filterNot { it.caption == "Pan" || it.caption == "Move" }
+                } else {
+                    buttons
+                }
+            }
         uiState = uiState.copy(
             stateName = stateName,
             message = message,
             voltageText = voltageText,
-            dynamicButtons = json.optJSONArray("buttons").toDynamicButtons(),
+            dynamicButtons = dynamicButtons,
             acceptClick = acceptClick,
             acceptRectangle = acceptRectangle,
         )
