@@ -11,9 +11,12 @@ import androidx.lifecycle.viewModelScope
 import com.robocart.domain.connection.ObserveConnectionStateUseCase
 import com.robocart.domain.connection.ObserveIncomingJpegUseCase
 import com.robocart.domain.connection.ObserveIncomingJsonUseCase
+import com.robocart.domain.connection.ObserveRelayConnectionUseCase
 import com.robocart.domain.connection.SendJsonCommandUseCase
 import com.robocart.domain.connection.StartTransportUseCase
 import com.robocart.domain.connection.StopTransportUseCase
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -23,6 +26,7 @@ class MainViewModel(
     private val observeIncomingJson: ObserveIncomingJsonUseCase,
     private val observeIncomingJpeg: ObserveIncomingJpegUseCase,
     private val observeConnectionState: ObserveConnectionStateUseCase,
+    private val observeRelayConnection: ObserveRelayConnectionUseCase,
     private val sendJsonCommand: SendJsonCommandUseCase,
     private val startTransport: StartTransportUseCase,
     private val stopTransport: StopTransportUseCase,
@@ -31,11 +35,20 @@ class MainViewModel(
         private set
 
     private var currentStateName: String = "unknown"
+    private var lastPacketReceivedAtSec: Long? = null
 
     init {
         viewModelScope.launch {
             observeConnectionState().collect { isConnected ->
+                if (!isConnected) {
+                    lastPacketReceivedAtSec = null
+                }
                 uiState = uiState.copy(isConnected = isConnected)
+            }
+        }
+        viewModelScope.launch {
+            observeRelayConnection().collect { isRelayConnection ->
+                uiState = uiState.copy(isRelayConnection = isRelayConnection)
             }
         }
         viewModelScope.launch {
@@ -43,6 +56,25 @@ class MainViewModel(
         }
         viewModelScope.launch {
             observeIncomingJpeg().collect(::onJpegPayload)
+        }
+        viewModelScope.launch {
+            while (isActive) {
+                val nextLatencyText = if (uiState.isConnected) {
+                    val lastPacketSec = lastPacketReceivedAtSec
+                    if (lastPacketSec != null) {
+                        val nowSec = System.currentTimeMillis() / 1000
+                        "${(nowSec - lastPacketSec).coerceAtLeast(0)} s"
+                    } else {
+                        "-- s"
+                    }
+                } else {
+                    "-- s"
+                }
+                if (uiState.latencyText != nextLatencyText) {
+                    uiState = uiState.copy(latencyText = nextLatencyText)
+                }
+                delay(250)
+            }
         }
     }
 
@@ -115,6 +147,7 @@ class MainViewModel(
     }
 
     private fun onJsonPayload(payload: Any?) {
+        lastPacketReceivedAtSec = System.currentTimeMillis() / 1000
         val json = payload as? JSONObject ?: return
         val stateName = json.optString("state_name", currentStateName)
         val acceptClick = json.optBoolean("accept_click", false)
@@ -139,6 +172,7 @@ class MainViewModel(
     }
 
     private fun onJpegPayload(payload: ByteArray) {
+        lastPacketReceivedAtSec = System.currentTimeMillis() / 1000
         val bitmap = BitmapFactory.decodeByteArray(payload, 0, payload.size) ?: return
         uiState = uiState.copy(frame = bitmap.asImageBitmap())
     }
@@ -168,6 +202,7 @@ class MainViewModel(
         private val observeIncomingJson: ObserveIncomingJsonUseCase,
         private val observeIncomingJpeg: ObserveIncomingJpegUseCase,
         private val observeConnectionState: ObserveConnectionStateUseCase,
+        private val observeRelayConnection: ObserveRelayConnectionUseCase,
         private val sendJsonCommand: SendJsonCommandUseCase,
         private val startTransport: StartTransportUseCase,
         private val stopTransport: StopTransportUseCase,
@@ -181,6 +216,7 @@ class MainViewModel(
                 observeIncomingJson = observeIncomingJson,
                 observeIncomingJpeg = observeIncomingJpeg,
                 observeConnectionState = observeConnectionState,
+                observeRelayConnection = observeRelayConnection,
                 sendJsonCommand = sendJsonCommand,
                 startTransport = startTransport,
                 stopTransport = stopTransport,

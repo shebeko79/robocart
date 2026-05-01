@@ -44,6 +44,7 @@ class RobotTransportRepositoryImpl(
     private val jsonFlow = MutableSharedFlow<Any?>(extraBufferCapacity = 64)
     private val jpegFlow = MutableSharedFlow<ByteArray>(extraBufferCapacity = 8)
     private val connectedFlow = MutableStateFlow(false)
+    private val relayConnectionFlow = MutableStateFlow(false)
 
     private var transport: UdpTransport? = null
     private var monitorJob: Job? = null
@@ -126,6 +127,7 @@ class RobotTransportRepositoryImpl(
             scope.launch {
                 relayFallbackJob?.cancel()
                 relayFallbackJob = null
+                relayConnectionFlow.value = false
                 transport?.stop()
                 transport = UdpTransport(
                     hostName = newHostName,
@@ -149,6 +151,7 @@ class RobotTransportRepositoryImpl(
     override val jsonEvents: Flow<Any?> = jsonFlow.asSharedFlow()
     override val jpegEvents: Flow<ByteArray> = jpegFlow.asSharedFlow()
     override val isConnected: Flow<Boolean> = connectedFlow.asStateFlow()
+    override val isRelayConnection: Flow<Boolean> = relayConnectionFlow.asStateFlow()
 
     override fun start() {
         acquireMulticastLock()
@@ -198,6 +201,7 @@ class RobotTransportRepositoryImpl(
         currentAddress = null
 
         connectedFlow.value = false
+        relayConnectionFlow.value = false
     }
 
     override fun sendJson(payload: Map<String, Any?>) {
@@ -250,6 +254,7 @@ class RobotTransportRepositoryImpl(
 
             val relayAddress = InetSocketAddress(RELAY_HOST, port)
             currentAddress = relayAddress
+            relayConnectionFlow.value = true
             Log.i(TAG, "LAN service not found, switching to relay host=$RELAY_HOST port=$port")
 
             transport?.stop()

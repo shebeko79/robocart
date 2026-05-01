@@ -9,6 +9,7 @@ import com.robocart.data.network.RobotTransportRepositoryImpl
 import com.robocart.domain.connection.ObserveConnectionStateUseCase
 import com.robocart.domain.connection.ObserveIncomingJpegUseCase
 import com.robocart.domain.connection.ObserveIncomingJsonUseCase
+import com.robocart.domain.connection.ObserveRelayConnectionUseCase
 import com.robocart.domain.connection.SendJsonCommandUseCase
 import com.robocart.domain.connection.StartTransportUseCase
 import com.robocart.domain.connection.StopTransportUseCase
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
             observeIncomingJson = ObserveIncomingJsonUseCase(repository),
             observeIncomingJpeg = ObserveIncomingJpegUseCase(repository),
             observeConnectionState = ObserveConnectionStateUseCase(repository),
+            observeRelayConnection = ObserveRelayConnectionUseCase(repository),
             sendJsonCommand = SendJsonCommandUseCase(repository),
             startTransport = StartTransportUseCase(repository),
             stopTransport = StopTransportUseCase(repository),

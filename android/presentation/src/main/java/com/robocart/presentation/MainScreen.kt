@@ -64,10 +64,11 @@ data class DynamicActionButton(
 data class MainScreenState(
     val frame: ImageBitmap? = null,
     val isConnected: Boolean = false,
+    val isRelayConnection: Boolean = false,
     val stateName: String = "unknown",
     val message: String = "No message",
     val voltageText: String = "--.-V",
-    val latencyText: String = "-- ms",
+    val latencyText: String = "-- s",
     val dynamicButtons: List<DynamicActionButton> = emptyList(),
     val acceptClick: Boolean = false,
     val acceptRectangle: Boolean = false,
@@ -324,7 +325,11 @@ private fun toNormalizedOffset(
 
 @Composable
 private fun StatusLine(state: MainScreenState) {
-    val statusColor = if (state.isConnected) Color(0xFF2E7D32) else Color(0xFFFF9800)
+    val statusColor = when {
+        !state.isConnected -> Color(0xFFFF9800)
+        state.isRelayConnection -> Color(0xFF1976D2)
+        else -> Color(0xFF2E7D32)
+    }
     val hasMessage = state.message.isNotBlank() && state.message != "No message"
 
     Card(
