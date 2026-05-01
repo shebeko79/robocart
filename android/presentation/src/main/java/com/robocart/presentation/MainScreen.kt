@@ -187,7 +187,7 @@ private fun VideoPanel(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                 .onSizeChanged { boxSize = it }
-                .pointerInput(state.frame, state.acceptClick, state.acceptRectangle, boxSize) {
+                .pointerInput(state.acceptClick, state.acceptRectangle, boxSize) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val frame = state.frame ?: return@awaitEachGesture
