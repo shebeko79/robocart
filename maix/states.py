@@ -6,6 +6,7 @@ import algos
 import pan_tilt
 import tracker
 import mover
+import track_utils
 
 
 class Button:
@@ -328,16 +329,27 @@ class MoveState(BaseState):
     def on_click_button(self, btn: Button):
         if btn.state_name:
             set_state(btn.state_name)
-        elif btn.caption == "<<":
-            mover.move(0, -1)
-        elif btn.caption == ">>":
-            mover.move(0, 1)
-        elif btn.caption == "D":
-            mover.move(1, 0)
-        elif btn.caption == "R":
-            mover.move(-1, 0)
-        elif btn.caption == "Stop":
+            return
+
+        if btn.caption == "Stop":
             mover.stop()
+            return
+
+        speed = 0
+        pan = 0
+
+        if btn.caption == "<<":
+            pan = -1
+        elif btn.caption == ">>":
+            pan = 1
+        elif btn.caption == "D":
+            speed = 1
+        elif btn.caption == "R":
+            speed = -1
+        else:
+            return
+
+        mover.distance(speed, pan, track_utils.MOVE_DISTANCE)
 
 
 class PanTiltState(BaseState):

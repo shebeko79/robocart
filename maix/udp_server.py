@@ -358,7 +358,7 @@ class UdpConnection(PacketProcessor):
         if st is None or not st.accept_user_move_cam:
             return
 
-        mover.move(speed, pan)
+        mover.distance(speed, pan, track_utils.MOVE_DISTANCE)
 
     def release_cam(self, js):
         self.require_state_answer = True

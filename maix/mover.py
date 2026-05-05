@@ -7,6 +7,7 @@ serial: uart.UART = None
 
 CAR_NAME = "rccar"
 DRIVE_CMD_STR = "cmd:"+CAR_NAME+":drive:{};{}\r"
+DISTANCE_CMD_STR = "cmd:"+CAR_NAME+":distance:{};{};{}\r"
 STATE_CMD_STR = "cmd:"+CAR_NAME+":state\r"
 SLEEP_CMD_STR = "cmd:"+CAR_NAME+":sleep:{}\r"
 
@@ -39,6 +40,15 @@ def move(y, x):
     x = constrain(x)
 
     cmd = DRIVE_CMD_STR.format(y, x)
+    #print(cmd)
+    serial.write_str(cmd)
+
+
+def distance(y, x, d):
+    y = constrain(y)
+    x = constrain(x)
+
+    cmd = DISTANCE_CMD_STR.format(y, x, d)
     #print(cmd)
     serial.write_str(cmd)
 

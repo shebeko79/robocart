@@ -8,6 +8,7 @@ CFG_PATH = "/root"
 
 SLEEP_IDLE_TIMEOUT = 5*60  # timeout before module go to sleep mode. If zero module will remain active
 SLEEP_DURATION = 30*60  # how long module sleeping
+MOVE_DISTANCE = 0.2  # distance for move commands
 
 last_request_time = 0
 
@@ -23,6 +24,7 @@ def make_rect(pt1, pt2):
 def init():
     global SLEEP_IDLE_TIMEOUT
     global SLEEP_DURATION
+    global MOVE_DISTANCE
 
     file_path = CFG_PATH+"/robot.cfg"
 
@@ -33,13 +35,14 @@ def init():
         data = json.load(file)
         SLEEP_IDLE_TIMEOUT = data['sleep_idle_timeout']
         SLEEP_DURATION = data['sleep_duration']
+        MOVE_DISTANCE = data['move_distance']
 
 
 def save_cfg():
     global SLEEP_IDLE_TIMEOUT
     global SLEEP_DURATION
 
-    data = {'sleep_idle_timeout': SLEEP_IDLE_TIMEOUT, 'sleep_duration': SLEEP_DURATION}
+    data = {'sleep_idle_timeout': SLEEP_IDLE_TIMEOUT, 'sleep_duration': SLEEP_DURATION, 'move_distance': MOVE_DISTANCE}
 
     file_path = CFG_PATH+"/robot.cfg"
     with open(file_path, "w", encoding="utf-8") as f:
