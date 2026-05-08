@@ -29,7 +29,6 @@ int64_t printed_cycle = 0;
 float cpu_freq = 0.0;
 uint32_t pwm_duty = 0;
 constexpr int pwm_bits=10;
-constexpr int max_pwm=(1<<pwm_bits) - 1;
 
 constexpr float WHEEL_PULSES_PER_ROTATION=90.0;
 constexpr float WHEEL_DIAMETER=6.5*0.0254; //meters
@@ -214,7 +213,10 @@ void print_speed()
   timer_speed_sum += timer_speed;
   ++measures_count;
 
-  //Serial.printf("cycle_diff=%u pwm_duty=%u seconds=%f speed=%f m/s timer_speed=%f m/s\n",diff, pwm_duty, seconds, speed, timer_speed);
+  double avg_cpu_speed = cpu_speed_sum / measures_count;
+  double avg_timer_speed = timer_speed_sum / measures_count;
+
+  Serial.printf("cycle_diff=%u pwm_duty=%u seconds=%f speed=%f(%lf) timer_speed=%f(%lf) \n",diff, pwm_duty, seconds, speed,avg_cpu_speed, timer_speed,avg_timer_speed);
 
   printed_cycle = cur_cycle;
 }
@@ -234,8 +236,9 @@ void increase_pwm()
   timer_speed_sum = 0.0;
   measures_count=0;
 
-  ++pwm_duty;
-  pwm_duty %= max_pwm;
+  //++pwm_duty;
+  pwm_duty += 255;
+  pwm_duty %= (1<<pwm_bits);
 
   uint32_t diff = ESP.getCycleCount() - cur_cycle;
   bool do_reset = diff*1.0>cpu_freq;
