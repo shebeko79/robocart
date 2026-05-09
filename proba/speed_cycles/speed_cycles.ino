@@ -25,6 +25,8 @@ int64_t prev_cycle = 0;
 volatile int64_t cur_cycle = 0;
 volatile int cycle_diff = 0;
 int64_t printed_cycle = 0;
+volatile int min_cycle_diff = std::numeric_limits<int>::max();
+volatile int max_cycle_diff = std::numeric_limits<int>::min();
 
 float cpu_freq = 0.0;
 uint32_t pwm_duty = 0;
@@ -116,6 +118,9 @@ void speed_by_CPU()
   cur_cycle = ESP.getCycleCount();
 
   cycle_diff = static_cast<int>(cur_cycle-prev_cycle);
+
+  min_cycle_diff = min(min_cycle_diff,cycle_diff);
+  max_cycle_diff = max(max_cycle_diff,cycle_diff);
 }
 
 void speed_by_timer()
@@ -216,7 +221,7 @@ void print_speed()
   double avg_cpu_speed = cpu_speed_sum / measures_count;
   double avg_timer_speed = timer_speed_sum / measures_count;
 
-  Serial.printf("cycle_diff=%u pwm_duty=%u seconds=%f speed=%f(%lf) timer_speed=%f(%lf) \n",diff, pwm_duty, seconds, speed,avg_cpu_speed, timer_speed,avg_timer_speed);
+  //Serial.printf("cycle_diff=%u pwm_duty=%u seconds=%f speed=%f(%lf) timer_speed=%f(%lf) \n",diff, pwm_duty, seconds, speed,avg_cpu_speed, timer_speed,avg_timer_speed);
 
   printed_cycle = cur_cycle;
 }
@@ -235,9 +240,17 @@ void increase_pwm()
   cpu_speed_sum = 0.0;
   timer_speed_sum = 0.0;
   measures_count=0;
+  
+  int min_cycle = min_cycle_diff;
+  int max_cycle = max_cycle_diff;
 
-  //++pwm_duty;
-  pwm_duty += 255;
+  float max_speed = 1.0/WHEEL_PULSES_PER_METER/(min_cycle/cpu_freq);
+  float min_speed = 1.0/WHEEL_PULSES_PER_METER/(max_cycle/cpu_freq);
+
+  min_cycle_diff = std::numeric_limits<int>::max();
+  max_cycle_diff = std::numeric_limits<int>::min();
+
+  pwm_duty += 32;
   pwm_duty %= (1<<pwm_bits);
 
   uint32_t diff = ESP.getCycleCount() - cur_cycle;
@@ -250,6 +263,7 @@ void increase_pwm()
   }
   
   ledcWrite(0, pwm_duty);
+  Serial.printf("increase_pwm(): min_speed=%lf (%d) max_speed=%lf (%d)\n", min_speed, max_cycle, max_speed, min_cycle);
   Serial.printf("increase_pwm(): prev:(cpu_speed=%lf timer_speed=%lf) pwm_duty=%u diff=%u do_reset=%d\n", avg_cpu_speed,avg_timer_speed, pwm_duty, diff, do_reset);
 
   if(do_reset)
