@@ -21,12 +21,14 @@ constexpr int MR_C = 35;
 
 constexpr int VCC_ADC_PIN = 36;
 
-int64_t prev_cycle = 0;
-volatile int64_t cur_cycle = 0;
-volatile int cycle_diff = 0;
-int64_t printed_cycle = 0;
-volatile int min_cycle_diff = std::numeric_limits<int>::max();
-volatile int max_cycle_diff = std::numeric_limits<int>::min();
+
+volatile uint32_t speed_cycles[4]={};
+volatile int speed_directions[3]={};
+
+uint32_t m_cycles_diff = 0;
+int m_directions = 0;
+
+int32_t printed_cycle = 0;
 
 float cpu_freq = 0.0;
 uint32_t pwm_duty = 0;
@@ -112,19 +114,10 @@ int readHallIndex()
   return hall2idx[st];
 }
 
-void speed_by_CPU()
+void IRAM_ATTR left_tick_isr()
 {
-  prev_cycle = cur_cycle;
-  cur_cycle = ESP.getCycleCount();
+  uint32_t cur_cycle = ESP.getCycleCount();
 
-  cycle_diff = static_cast<int>(cur_cycle-prev_cycle);
-
-  min_cycle_diff = min(min_cycle_diff,cycle_diff);
-  max_cycle_diff = max(max_cycle_diff,cycle_diff);
-}
-
-void speed_by_timer()
-{
   int hall_idx = readHallIndex();
 
   //Incorrect state of hall sensors
@@ -140,12 +133,25 @@ void speed_by_timer()
   unsigned t = m_timer_val;
   m_periods[t%PERIODS_COUNT] += d;
   m_speed_ticks_count += d;
-}
 
-void IRAM_ATTR left_tick_isr()
-{
-  speed_by_CPU();
-  speed_by_timer();
+  m_directions -= speed_directions[0];
+
+  speed_directions[0]=speed_directions[1];
+  speed_directions[1]=speed_directions[2];
+  speed_directions[2]=d;
+
+  m_directions += d;
+
+  speed_cycles[0]=speed_cycles[1];
+  speed_cycles[1]=speed_cycles[2];
+  speed_cycles[2]=speed_cycles[3];
+  speed_cycles[3] = cur_cycle;
+
+  uint32_t diff = speed_cycles[1] - speed_cycles[0];
+  diff += speed_cycles[2] - speed_cycles[1];
+  diff += cur_cycle - speed_cycles[2];
+
+  m_cycles_diff = diff;
 }
 
 void IRAM_ATTR right_tick_isr()
@@ -203,27 +209,40 @@ float get_speed_by_timer()
   return m_speed_ticks_count*KPER_SEC/WHEEL_PULSES_PER_METER;
 }
 
+float get_speed_by_cpu()
+{
+  uint32_t diff = m_cycles_diff;
+  int d = m_directions;
+
+  return cpu_freq*d/WHEEL_PULSES_PER_METER/diff;
+}
+
+float get_immediate_speed_by_cpu()
+{
+  uint32_t diff = speed_cycles[3]-speed_cycles[2];
+  int d = speed_directions[2];
+
+  return cpu_freq*d/WHEEL_PULSES_PER_METER/diff;
+}
+
 void print_speed()
 {
-  if(printed_cycle == cur_cycle)
+  if(printed_cycle == speed_cycles[3])
     return;
-
-  int diff = cycle_diff;
-  float seconds = diff/cpu_freq;
-  float speed = 1.0/WHEEL_PULSES_PER_METER/seconds;
+  printed_cycle = speed_cycles[3];
 
   float timer_speed = get_speed_by_timer();
 
-  cpu_speed_sum += speed;
+  float im_speed = get_immediate_speed_by_cpu();
+  float cpu_speed = get_speed_by_cpu();
+  cpu_speed_sum += cpu_speed;
   timer_speed_sum += timer_speed;
   ++measures_count;
 
   double avg_cpu_speed = cpu_speed_sum / measures_count;
   double avg_timer_speed = timer_speed_sum / measures_count;
 
-  //Serial.printf("cycle_diff=%u pwm_duty=%u seconds=%f speed=%f(%lf) timer_speed=%f(%lf) \n",diff, pwm_duty, seconds, speed,avg_cpu_speed, timer_speed,avg_timer_speed);
-
-  printed_cycle = cur_cycle;
+  Serial.printf("pwm_duty=%u speed=%f(%f)(%lf) timer_speed=%f(%lf) \n",pwm_duty, im_speed, cpu_speed,avg_cpu_speed, timer_speed,avg_timer_speed);
 }
 
 void increase_pwm()
@@ -241,19 +260,10 @@ void increase_pwm()
   timer_speed_sum = 0.0;
   measures_count=0;
   
-  int min_cycle = min_cycle_diff;
-  int max_cycle = max_cycle_diff;
-
-  float max_speed = 1.0/WHEEL_PULSES_PER_METER/(min_cycle/cpu_freq);
-  float min_speed = 1.0/WHEEL_PULSES_PER_METER/(max_cycle/cpu_freq);
-
-  min_cycle_diff = std::numeric_limits<int>::max();
-  max_cycle_diff = std::numeric_limits<int>::min();
-
-  pwm_duty += 32;
+  pwm_duty += 255;
   pwm_duty %= (1<<pwm_bits);
 
-  uint32_t diff = ESP.getCycleCount() - cur_cycle;
+  uint32_t diff = ESP.getCycleCount() - speed_cycles[3];
   bool do_reset = diff*1.0>cpu_freq;
 
   if(do_reset)
@@ -263,7 +273,6 @@ void increase_pwm()
   }
   
   ledcWrite(0, pwm_duty);
-  Serial.printf("increase_pwm(): min_speed=%lf (%d) max_speed=%lf (%d)\n", min_speed, max_cycle, max_speed, min_cycle);
   Serial.printf("increase_pwm(): prev:(cpu_speed=%lf timer_speed=%lf) pwm_duty=%u diff=%u do_reset=%d\n", avg_cpu_speed,avg_timer_speed, pwm_duty, diff, do_reset);
 
   if(do_reset)
