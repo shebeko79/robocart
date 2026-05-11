@@ -4,9 +4,8 @@
 class MotorZsx11h
 {
 public:
-  static constexpr unsigned PERIODS_COUNT = 50;
-  static constexpr float KPER_SEC=1000.0/(PERIODS_COUNT*TIMER_MS);
-  static const int MAX_PWM=255;
+  static constexpr int PWM_BITS=10;
+  static constexpr int MAX_PWM=(1<<PWM_BITS)-1;
 
   enum State{st_off,st_forward,st_backward,st_brake};
   
@@ -24,9 +23,9 @@ public:
   void backward(int val=MAX_PWM);
 
   void speed_pin_isr();
-  void timer_isr(unsigned timer_val);
+  void check_speed_timeout();
   
-  inline float get_speed_meters()const{return (DIR_FORWARD? 1.0:-1.0)*m_speed_ticks_count*KPER_SEC/WHEEL_PULSES_PER_METER;}
+  inline float get_speed_meters()const{return m_speed;}
   inline State get_state() const{return m_state;}
   inline int get_ticks_count()const{return (DIR_FORWARD? 1.0:-1.0)*m_ticks_count;}
   
@@ -41,11 +40,21 @@ private:
 
   const int m_hall_a,m_hall_b,m_hall_c;
 
-  volatile unsigned m_timer_val=0;
-  volatile int m_periods[PERIODS_COUNT];
-  volatile int m_speed_ticks_count = 0;
   volatile int m_ticks_count = 0;
   volatile int m_hall_idx = 0;
+
+  volatile uint32_t m_cpu_clock[4]={};
+  volatile int m_directions[3]={};
+
+  volatile uint32_t m_cpu_diff = 0;
+  volatile int m_direction = 0;
+  volatile bool m_empty_speed = true;
+
+  float m_cpu_freq;
+  float m_speed = 0.0;
+
+  uint32_t m_last_clk = 0;
+  unsigned long m_last_clk_ms;
 
   int readHallIndex();
 };

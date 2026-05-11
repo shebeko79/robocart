@@ -24,7 +24,7 @@ constexpr float EXPECTED_PWM_DELAY = MAIN_CYCLE_DELAY/1000.0;
 constexpr float RELATIVE_MAX_SPEED = 0.3; //meters per second
 constexpr float RELATIVE_MAX_ROT = 0.2; //meters per second
 
-constexpr unsigned TIMER_MS=10;
+constexpr unsigned SPEED_TIMEOUT_MS=500;
 
 constexpr float POWER_OFF_VOLTAGE = 21.0; //Volts
 constexpr float POWER_ON_VOLTAGE = 22.0; //Volts

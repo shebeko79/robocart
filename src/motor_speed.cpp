@@ -200,7 +200,7 @@ void MotorSpeed::dump_state(const String& caption, Stream& stream)
   stream.print(" time=");
   stream.print(millis());
   stream.print(" dst_speed=");
-  stream.print(abs(m_dst_speed),4);
+  stream.print(m_dst_speed,4);
   stream.print(" cur_speed=");
   stream.print(cur_speed,4);
   stream.print(" PWM=");
