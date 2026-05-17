@@ -34,6 +34,7 @@ void MotorZsx11h::speed_pin_isr()
     m_direction=d;
 
     m_cpu_clock[0]=m_cpu_clock[1]=m_cpu_clock[2]=m_cpu_clock[3]=cur_clock;
+    m_cpu_diff = 0;
     return;
   }
 
@@ -103,7 +104,10 @@ void MotorZsx11h::check_speed_timeout()
   }
   else
   {
-    ms_diff = cur_ms-m_last_clk_ms;
+    if(diff == 0)
+      ms_diff = MAIN_CYCLE_DELAY;
+    else
+      ms_diff = cur_ms-m_last_clk_ms;
 
     if(ms_diff>=SPEED_TIMEOUT_MS)
     {
@@ -115,21 +119,20 @@ void MotorZsx11h::check_speed_timeout()
     }
   }
 
-  if(diff == 0)
-  {
-    m_speed = 0.0;
-    return;
-  }
+  float speed = 0.0;
 
-  float speed = m_cpu_freq*d/WHEEL_PULSES_PER_METER/diff;
-  //Serial.printf("last_clk=%u diff=%u d=%d speed=%f d0=%d d1=%d d2=%d\n", last_clk, diff, d, speed,m_directions[0],m_directions[1],m_directions[2]);
+  if(diff > 0)
+  {
+    speed = m_cpu_freq*d/WHEEL_PULSES_PER_METER/diff;
+    //Serial.printf("last_clk=%u diff=%u d=%d speed=%f d0=%d d1=%d d2=%d\n", last_clk, diff, d, speed,m_directions[0],m_directions[1],m_directions[2]);
+  }
 
   if(ms_diff>0)
   {
     int ms_d = (d>=0)? 1:-1;
     float ms_speed = ms_d/WHEEL_PULSES_PER_METER/ms_diff*1000;
 
-    if(abs(speed)>abs(ms_speed)*2)
+    if(diff == 0 || abs(speed)>abs(ms_speed)*2)
     {
       //Serial.printf("last_clk=%u diff=%u d=%d speed=%f ms_speed=%f\n", last_clk, diff, d, speed, ms_speed);
       speed = ms_speed;
