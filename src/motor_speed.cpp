@@ -75,17 +75,17 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
     
     cur_acc = (cur_speed-m_prev_speed)/cur_delay;
     const float kdirection = (m_dst_speed<0)? -1.0:1.0;
-    const float dx = (cur_speed*kdirection<=m_dst_speed*kdirection)? 1.0:-1.0;
-    const float speed_correction = dx*kdirection>0? UP_SPEED_CORRECTION:DOWN_SPEED_CORRECTION;
+    const float kincrease = (cur_speed*kdirection<=m_dst_speed*kdirection)? 1.0:-1.0;
+    const float speed_correction = kincrease>0? UP_SPEED_CORRECTION:DOWN_SPEED_CORRECTION;
 
     res = m_prev_pwm;
 
-    if(cur_acc*dx*kdirection<0.0 || cur_acc*dx*kdirection<CLOSE_TO_ZERO_ACCELERATION)
+    if(cur_acc*kincrease*kdirection<0.0 || cur_acc*kincrease*kdirection<CLOSE_TO_ZERO_ACCELERATION)
     {
       res = m_prev_pwm+(m_dst_speed-cur_speed)*speed_correction;
     }
 
-    if(dx>0)
+    if(kincrease>0)
     {
       if(m_prev_acc == 0.0 && cur_acc==0.0 && cur_speed == 0.0 && std::abs(m_dst_speed)>CLOSE_TO_ZERO_SPEED_DIFF)
          kick = KICK_PWM_CORRECTION*kdirection;
@@ -101,7 +101,6 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
 
     res = constrain(res, -1.0, 1.0);
     
-
     // Serial.print(" dst_sp=");
     // Serial.print(m_dst_speed,4);
     // Serial.print(" cur_sp=");
@@ -114,8 +113,8 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
     // Serial.print(res,4);
     // Serial.print(" prev_pwm=");
     // Serial.print(m_prev_pwm,4);
-    // Serial.print(" speed2pwm=");
-    // Serial.print(m_speed2pwm,4);
+    // Serial.print(" is_brake=");
+    // Serial.print(is_brake);
     // Serial.println("");
   }
 
@@ -205,7 +204,5 @@ void MotorSpeed::dump_state(const String& caption, Stream& stream)
   stream.print(cur_speed,4);
   stream.print(" PWM=");
   stream.print(m_prev_pwm,4);
-  stream.print(" speed2pwm=");
-  stream.print(m_speed2pwm,4);
   stream.println("");
 }
