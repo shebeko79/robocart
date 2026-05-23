@@ -142,6 +142,11 @@ void MotorZsx11h::check_speed_timeout()
   m_speed = (DIR_FORWARD? 1.0:-1.0)*speed;
 }
 
+float MotorZsx11h::get_blind_ms(double speed)
+{
+  return 1.0/WHEEL_PULSES_PER_METER/speed*1000;
+}
+
 void MotorZsx11h::init()
 {
   pinMode(m_hall_a, INPUT);

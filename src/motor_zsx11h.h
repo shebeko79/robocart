@@ -28,6 +28,8 @@ public:
   inline float get_speed_meters()const{return m_speed;}
   inline State get_state() const{return m_state;}
   inline int get_ticks_count()const{return (DIR_FORWARD? 1.0:-1.0)*m_ticks_count;}
+
+  static float get_blind_ms(double speed);
   
 private:
   const int PWM;
