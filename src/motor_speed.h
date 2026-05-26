@@ -15,6 +15,19 @@ public:
     bs_speed_compensation,
     bs_distance_reached
   };
+
+  struct shot_t
+  {
+    unsigned long time=0;
+    float speed=0.0;
+    float func_pwm=0.0;
+    float correction_pwm=0.0;
+    float kick_pwm=0.0;
+    bool is_brake = false;
+
+    constexpr float pwm() const{return constrain(func_pwm + correction_pwm + kick_pwm, -1.0, 1.0);}
+    void dump_state(Stream& stream);
+  };
   
 public:
   MotorSpeed(Motor& motor) : 
@@ -48,7 +61,9 @@ private:
   float calc_pwm(float cur_speed, bool &is_brake);
   void reset_pid();
   float speed2pwm(float speed) const;
-  
+
+  static unsigned wrap_shot_idx(unsigned idx);
+
 private:
   volatile float m_dst_speed = 0.0;
   volatile bool m_distance_mode = false;
@@ -57,11 +72,10 @@ private:
 
   Motor& m_motor;
 
-  float m_prev_speed=0.0;
-  unsigned long m_prev_time=0;
-  float m_prev_acc = 0.0;
-  float m_prev_correction_pwm=0.0;
-  
+  static constexpr unsigned SHOTS_COUNT = 32;
+  std::array<shot_t, SHOTS_COUNT> m_shots;
+  unsigned m_cur_shot;
+
   static constexpr float m_speed2pwm = 1.0/MAX_SPEED;
 
   BrakeState m_brake_state = bs_zero_speed;

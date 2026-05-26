@@ -54,81 +54,71 @@ void MotorSpeed::apply()
 
 float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
 {
-  unsigned long cur_time = millis();
+  m_cur_shot = wrap_shot_idx(m_cur_shot) + 1;
+
+  shot_t& cur = m_shots[m_cur_shot];
+  const shot_t& prev = m_shots[wrap_shot_idx(m_cur_shot-1)];
+  const shot_t& pprev = m_shots[wrap_shot_idx(m_cur_shot-2)];
+
+  cur = shot_t();
+  cur.time = millis();
+  cur.speed = cur_speed;
+
 
   float cur_delay;
-  if(cur_time == m_prev_time)
+  if(cur.time == prev.time)
     cur_delay=EXPECTED_PWM_DELAY;
   else
-    cur_delay = (cur_time - m_prev_time)/1000.0;
+    cur_delay = (cur.time - prev.time)/1000.0;
 
-  float cur_acc = (cur_speed-m_prev_speed)/cur_delay;
+  float cur_acc = (cur_speed-prev.speed)/cur_delay;
   const float kdirection = (m_dst_speed<0)? -1.0:1.0;
   const float kincrease = (cur_speed*kdirection<=m_dst_speed*kdirection)? 1.0:-1.0;
   const float kspeed_correction = kincrease>0? UP_SPEED_CORRECTION:DOWN_SPEED_CORRECTION;
 
-  float func_pwm = speed2pwm(m_dst_speed);
-  float correction_pwm = m_prev_correction_pwm;
-  float kick_pwm = 0.0;
+  cur.func_pwm = speed2pwm(m_dst_speed);
+  cur.correction_pwm = prev.correction_pwm;
 
   if(cur_acc*kincrease*kdirection<0.0 || cur_acc*kincrease*kdirection<CLOSE_TO_ZERO_ACCELERATION)
   {
-    correction_pwm = m_prev_correction_pwm+(m_dst_speed-cur_speed)*kspeed_correction;
+    cur.correction_pwm = prev.correction_pwm+(m_dst_speed-cur_speed)*kspeed_correction;
   }
 
   if(kincrease>0)
   {
-    if(m_prev_acc == 0.0 && cur_acc==0.0 && cur_speed == 0.0 && std::abs(m_dst_speed)>CLOSE_TO_ZERO_SPEED_DIFF)
-        kick_pwm = KICK_PWM_CORRECTION*kdirection;
+    if(pprev.speed == 0.0 && prev.speed ==0.0 && cur_speed == 0.0 && std::abs(m_dst_speed)>CLOSE_TO_ZERO_SPEED_DIFF)
+        cur.kick_pwm = KICK_PWM_CORRECTION*kdirection;
   }
   else
   {
     if(cur_acc*kdirection>CLOSE_TO_ZERO_ACCELERATION && (cur_speed-m_dst_speed)*kdirection>BREAK_MAX_SPEED_DIFF_WITH_ACCELERATION || (cur_speed-m_dst_speed)*kdirection>BREAK_MAX_SPEED_DIFF)
     {
-      is_brake=true;
-      kick_pwm = BREAK_PWM_CORRECTION*kdirection;
+      cur.is_brake=true;
+      cur.kick_pwm = -BREAK_PWM_CORRECTION*kdirection;
     }
   }
 
-  correction_pwm = constrain(correction_pwm, -2.0, 2.0);
-  
-  float res_pwm = func_pwm + correction_pwm + kick_pwm;
-  res_pwm = constrain(res_pwm, -1.0, 1.0);
-  
+  cur.correction_pwm = constrain(cur.correction_pwm, -2.0, 2.0);
+
+  float res_pwm = cur.pwm();
+  is_brake = cur.is_brake;
+
   Serial.print(" dst_sp=");
   Serial.print(m_dst_speed,4);
-  Serial.print(" cur_sp=");
-  Serial.print(cur_speed,4);
   Serial.print(" acc=");
   Serial.print(cur_acc,4);
-  Serial.print(" prev_acc=");
-  Serial.print(m_prev_acc,4);
-  Serial.print(" res_pwm=");
-  Serial.print(res_pwm,4);
-  Serial.print(" correction_pwm=");
-  Serial.print(correction_pwm,4);
-  Serial.print(" kick_pwm=");
-  Serial.print(kick_pwm,4);
-  Serial.print(" is_brake=");
-  Serial.print(is_brake);
-  Serial.print(" prev_correction=");
-  Serial.print(m_prev_correction_pwm,4);
+  Serial.print(" cur: ");
+  cur.dump_state(Serial);
   Serial.println("");
 
-  m_prev_speed=cur_speed;
-  m_prev_acc = cur_acc;
-  m_prev_time=cur_time;
-  m_prev_correction_pwm = correction_pwm;
-  
   return  res_pwm;
 }
 
 void MotorSpeed::reset_pid()
 {
-  m_prev_speed = 0.0;
-  m_prev_time = millis();
-  m_prev_acc = 0.0;
-  m_prev_correction_pwm = 0.0;
+  shot_t s;
+  s.time = millis();
+  std::fill(m_shots.begin(),m_shots.end(),s);
 }
 
 void MotorSpeed::fail_safe()
@@ -182,6 +172,12 @@ void MotorSpeed::speed_pin_isr()
   }
 }
 
+unsigned MotorSpeed::wrap_shot_idx(unsigned idx)
+{
+  static_assert( (std::numeric_limits<unsigned>::max()%SHOTS_COUNT) == SHOTS_COUNT-1);
+  return idx % SHOTS_COUNT;
+}
+
 void MotorSpeed::dump_state(const String& caption, Stream& stream)
 {
   float cur_speed = m_motor.get_speed_meters();
@@ -201,4 +197,9 @@ void MotorSpeed::dump_state(const String& caption, Stream& stream)
   stream.print(" cur_speed=");
   stream.print(cur_speed,4);
   stream.println("");
+}
+
+void MotorSpeed::shot_t::dump_state(Stream& stream)
+{
+  stream.printf("speed=%.4f pwm=%.4f(%.4f ; %.4f ; %.4f) brake=%d",speed, pwm(), func_pwm, correction_pwm, kick_pwm, is_brake);
 }
