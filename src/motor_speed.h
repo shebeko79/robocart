@@ -20,6 +20,7 @@ public:
   {
     unsigned long time=0;
     float speed=0.0;
+    float dst_speed=0.0;
     float func_pwm=0.0;
     float correction_pwm=0.0;
     float kick_pwm=0.0;

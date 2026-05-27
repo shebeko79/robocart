@@ -54,15 +54,28 @@ void MotorSpeed::apply()
 
 float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
 {
-  m_cur_shot = wrap_shot_idx(m_cur_shot) + 1;
+  unsigned long cur_time = millis();
+  const shot_t& prev = m_shots[m_cur_shot];
+  const shot_t& pprev = m_shots[wrap_shot_idx(m_cur_shot-1)];
 
+  if(prev.dst_speed == m_dst_speed && prev.speed == cur_speed)
+  {
+    float blind_ms = m_motor.get_blind_ms(m_dst_speed);
+    if(blind_ms > cur_time - prev.time)
+    {
+      //Serial.printf("skip: blind_ms=%.4f diff=%u\n",blind_ms, cur_time - prev.time);
+      is_brake = prev.is_brake;
+      return prev.pwm();
+    }
+  }
+
+  m_cur_shot = wrap_shot_idx(m_cur_shot + 1);
   shot_t& cur = m_shots[m_cur_shot];
-  const shot_t& prev = m_shots[wrap_shot_idx(m_cur_shot-1)];
-  const shot_t& pprev = m_shots[wrap_shot_idx(m_cur_shot-2)];
 
   cur = shot_t();
-  cur.time = millis();
+  cur.time = cur_time;
   cur.speed = cur_speed;
+  cur.dst_speed = m_dst_speed;
 
 
   float cur_delay;
@@ -82,6 +95,7 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
   if(cur_acc*kincrease*kdirection<0.0 || cur_acc*kincrease*kdirection<CLOSE_TO_ZERO_ACCELERATION)
   {
     cur.correction_pwm = prev.correction_pwm+(m_dst_speed-cur_speed)*kspeed_correction;
+    //Serial.printf("%f=%f+(%f-%f)*%f\n",cur.correction_pwm, prev.correction_pwm, m_dst_speed, cur_speed, kspeed_correction);
   }
 
   if(kincrease>0)
