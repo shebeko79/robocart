@@ -242,7 +242,7 @@ void print_speed()
   double avg_cpu_speed = cpu_speed_sum / measures_count;
   double avg_timer_speed = timer_speed_sum / measures_count;
 
-  Serial.printf("pwm_duty=%u speed=%f(%f)(%lf) timer_speed=%f(%lf) \n",pwm_duty, im_speed, cpu_speed,avg_cpu_speed, timer_speed,avg_timer_speed);
+  //Serial.printf("pwm_duty=%u speed=%f(%f)(%lf) timer_speed=%f(%lf) \n",pwm_duty, im_speed, cpu_speed,avg_cpu_speed, timer_speed,avg_timer_speed);
 }
 
 void increase_pwm()
@@ -260,7 +260,7 @@ void increase_pwm()
   timer_speed_sum = 0.0;
   measures_count=0;
   
-  pwm_duty += 255;
+  pwm_duty += 1;
   pwm_duty %= (1<<pwm_bits);
 
   uint32_t diff = ESP.getCycleCount() - speed_cycles[3];
@@ -268,8 +268,9 @@ void increase_pwm()
 
   if(do_reset)
   {
+    Serial.printf("increase_pwm(): reset\n");
     digitalWrite(ML_STOP_PIN, HIGH);
-    delay(100);
+    delay(110);
   }
   
   ledcWrite(0, pwm_duty);
