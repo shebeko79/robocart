@@ -11,9 +11,9 @@ public:
   {
     bs_zero_speed,
     bs_fail_safe,
-    bs_change_direction,
     bs_speed_compensation,
-    bs_distance_reached
+    bs_distance_reached,
+    bs_anti_stall,
   };
 
   struct shot_t
@@ -25,6 +25,7 @@ public:
     float correction_pwm=0.0;
     float kick_pwm=0.0;
     bool is_brake = false;
+    bool is_stalled = false;
 
     constexpr float pwm() const{return constrain(func_pwm + correction_pwm + kick_pwm, -1.0, 1.0);}
     void dump_state(Stream& stream);
@@ -64,6 +65,8 @@ private:
   float speed2pwm(float speed) const;
 
   static unsigned wrap_shot_idx(unsigned idx);
+
+  bool anti_stall();
 
 private:
   volatile float m_dst_speed = 0.0;

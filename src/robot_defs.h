@@ -13,7 +13,7 @@ constexpr float OFF_SPEED = 0.01; //meters per second
 constexpr float CLOSE_TO_ZERO_ACCELERATION = 0.02;
 constexpr float CLOSE_TO_ZERO_SPEED_DIFF = 0.05;
 constexpr float UP_SPEED_CORRECTION = 0.01;
-constexpr float DOWN_SPEED_CORRECTION = 0.03;
+constexpr float DOWN_SPEED_CORRECTION = 0.01;
 constexpr float BREAK_MAX_SPEED_DIFF = 1.0;
 constexpr float BREAK_MAX_SPEED_DIFF_WITH_ACCELERATION = 0.5;
 constexpr float KICK_PWM_CORRECTION = 0.09;
@@ -25,6 +25,9 @@ constexpr float RELATIVE_MAX_SPEED = 0.3; //meters per second
 constexpr float RELATIVE_MAX_ROT = 0.2; //meters per second
 
 constexpr unsigned SPEED_TIMEOUT_MS=500;
+
+constexpr unsigned STALED_TRIGER_MS=300;
+constexpr unsigned STALED_DURATION_MS=120;
 
 constexpr float POWER_OFF_VOLTAGE = 21.0; //Volts
 constexpr float POWER_ON_VOLTAGE = 22.0; //Volts

@@ -4,27 +4,6 @@
 void MotorSpeed::apply()
 {
   float cur_speed = m_motor.get_speed_meters();
-  Motor::State st = m_motor.get_state();
-
-  if(st == Motor::st_brake && m_brake_state == bs_change_direction)
-  {
-    if(std::abs(cur_speed)>OFF_SPEED)
-      return;
-    
-    m_motor.soft_stop();
-    cur_speed = 0.0;
-    // Serial.println("after brake off");
-  }
-
-  if(st==Motor::st_forward && m_dst_speed<-OFF_SPEED ||
-      st==Motor::st_backward && m_dst_speed>OFF_SPEED)
-  {
-    // Serial.println("brake");
-    m_motor.brake();
-    m_brake_state = bs_change_direction;
-    reset_pid();
-    return;
-  }
 
   if(m_dst_speed==0.0)
   {
@@ -43,6 +22,9 @@ void MotorSpeed::apply()
     return;
   }
 
+  if(anti_stall())
+    return;
+
   int pwm = ctl_pwm*Motor::MAX_PWM;
   pwm = constrain(pwm, -Motor::MAX_PWM, Motor::MAX_PWM);
 
@@ -57,6 +39,13 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
   unsigned long cur_time = millis();
   const shot_t& prev = m_shots[m_cur_shot];
   const shot_t& pprev = m_shots[wrap_shot_idx(m_cur_shot-1)];
+
+  if(prev.is_stalled && cur_speed == 0.0 && cur_time-prev.time < STALED_DURATION_MS)
+  {
+    //Serial.printf("stall cool down: diff=%u\n", cur_time - prev.time);
+    is_brake = prev.is_brake;
+    return prev.pwm();
+  }
 
   if(prev.dst_speed == m_dst_speed && prev.speed == cur_speed)
   {
@@ -126,8 +115,7 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
   Serial.print(" cur: ");
   cur.dump_state(Serial);
   Serial.println("");
-#endif  
-
+#endif
   return  res_pwm;
 }
 
@@ -193,6 +181,29 @@ unsigned MotorSpeed::wrap_shot_idx(unsigned idx)
 {
   static_assert( (std::numeric_limits<unsigned>::max()%SHOTS_COUNT) == SHOTS_COUNT-1);
   return idx % SHOTS_COUNT;
+}
+
+bool MotorSpeed::anti_stall()
+{
+  shot_t& cur = m_shots[m_cur_shot];
+  const shot_t& last = m_shots[wrap_shot_idx(m_cur_shot + 1)];
+
+  if(cur.is_stalled)
+    return true;
+  
+  if(cur.dst_speed==0 || cur.speed != 0.0  || cur.time-last.time < STALED_TRIGER_MS)
+    return false;
+  
+  for(const shot_t& v : m_shots)
+    if(v.is_stalled || v.speed != 0.0)
+      return false;
+  
+  //Serial.println("stalled");
+  m_motor.brake();
+  m_brake_state = bs_anti_stall;
+
+  cur.is_stalled = true;
+  return true;
 }
 
 void MotorSpeed::dump_state(const String& caption, Stream& stream)
