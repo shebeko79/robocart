@@ -104,10 +104,7 @@ void MotorZsx11h::check_speed_timeout()
   }
   else
   {
-    if(diff == 0)
-      ms_diff = MAIN_CYCLE_DELAY;
-    else
-      ms_diff = cur_ms-m_last_clk_ms;
+    ms_diff = cur_ms-m_last_clk_ms;
 
     if(ms_diff>=SPEED_TIMEOUT_MS)
     {
