@@ -5,7 +5,7 @@ void MotorSpeed::apply()
 {
   float cur_speed = m_motor.get_speed_meters();
 
-  if(m_dst_speed==0.0)
+  if(m_dst_speed==0.0 && std::abs(cur_speed)<=CLOSE_TO_ZERO_SPEED_DIFF)
   {
     m_motor.brake();
     m_brake_state = bs_zero_speed;
@@ -15,7 +15,7 @@ void MotorSpeed::apply()
 
   bool is_brake = false;
   float ctl_pwm=calc_pwm(cur_speed,is_brake);
-  if(is_brake)
+  if(is_brake && m_motor.get_state() != Motor::st_brake)
   {
     m_motor.brake();
     m_brake_state = bs_speed_compensation;
