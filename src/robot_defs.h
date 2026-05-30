@@ -16,8 +16,8 @@ constexpr float UP_SPEED_CORRECTION = 0.01;
 constexpr float DOWN_SPEED_CORRECTION = 0.03;
 constexpr float BREAK_MAX_SPEED_DIFF = 1.0;
 constexpr float BREAK_MAX_SPEED_DIFF_WITH_ACCELERATION = 0.5;
-constexpr float KICK_PWM_CORRECTION = 0.1;
-constexpr float BREAK_PWM_CORRECTION = 0.2;
+constexpr float KICK_PWM_CORRECTION = 0.09;
+constexpr float BREAK_PWM_CORRECTION = 0.09;
 constexpr unsigned long MAIN_CYCLE_DELAY = 10;
 constexpr float EXPECTED_PWM_DELAY = MAIN_CYCLE_DELAY/1000.0;
 

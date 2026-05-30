@@ -116,14 +116,17 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
 
   float res_pwm = cur.pwm();
   is_brake = cur.is_brake;
-
+#if 0
   Serial.print(" dst_sp=");
   Serial.print(m_dst_speed,4);
   Serial.print(" acc=");
   Serial.print(cur_acc,4);
+  Serial.print(" dt=");
+  Serial.print(cur.time-prev.time);
   Serial.print(" cur: ");
   cur.dump_state(Serial);
   Serial.println("");
+#endif  
 
   return  res_pwm;
 }
