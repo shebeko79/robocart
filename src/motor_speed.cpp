@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "motor_speed.h"
 
+float MotorSpeed::m_pwm_limit = DEFAULT_PWM_LIMIT;
+
 void MotorSpeed::apply()
 {
   float cur_speed = m_motor.get_speed_meters();
@@ -22,11 +24,13 @@ void MotorSpeed::apply()
 
   if(anti_stall())
     return;
-
+  
   int pwm = ctl_pwm*Motor::MAX_PWM;
   pwm = constrain(pwm, -Motor::MAX_PWM, Motor::MAX_PWM);
 
-  if(pwm<0)
+  if(std::abs(pwm)<Motor::MIN_PWM)
+    m_motor.soft_stop();
+  else if(pwm<0)
     m_motor.backward(-pwm);
   else
     m_motor.forward(pwm);
@@ -99,7 +103,7 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
     }
   }
 
-  cur.correction_pwm = constrain(cur.correction_pwm, -2.0, 2.0);
+  cur.correction_pwm = constrain(cur.correction_pwm, -2.0*m_pwm_limit, 2.0*m_pwm_limit);
 
   float res_pwm = cur.pwm();
   is_brake = cur.is_brake;

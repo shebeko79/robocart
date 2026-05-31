@@ -18,11 +18,13 @@ public:
     bool is_brake = false;
     bool is_stalled = false;
 
-    constexpr float pwm() const{return constrain(func_pwm + correction_pwm + kick_pwm, -1.0, 1.0);}
+    float pwm() const{return constrain(func_pwm + correction_pwm + kick_pwm, -m_pwm_limit, m_pwm_limit);}
     void dump_state(Stream& stream);
   };
   
 public:
+  static float m_pwm_limit;
+
   MotorSpeed(Motor& motor) : 
     m_motor(motor)
   {

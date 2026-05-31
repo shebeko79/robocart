@@ -6,6 +6,7 @@ class MotorZsx11h
 public:
   static constexpr int PWM_BITS=10;
   static constexpr int MAX_PWM=(1<<PWM_BITS)-1;
+  static constexpr int MIN_PWM=8;
 
   enum State{st_off,st_forward,st_backward,st_brake};
   
