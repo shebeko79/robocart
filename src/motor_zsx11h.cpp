@@ -160,20 +160,19 @@ void MotorZsx11h::init()
   m_cpu_freq = ESP.getCpuFreqMHz()*1000000.0;
 
   ledcSetup(PWM_CHANNEL, 20000, PWM_BITS);
-  ledcDetachPin(PWM);
   digitalWrite(PWM, LOW);
   pinMode(PWM, OUTPUT);
 
   pinMode(DIR, OUTPUT);
   digitalWrite(DIR, DIR_FORWARD);
+  ledcAttachPin(PWM, PWM_CHANNEL);
 
   soft_stop();
 }
 
 void MotorZsx11h::soft_stop()
 {
-  ledcDetachPin(PWM);
-  digitalWrite(PWM, LOW);
+  ledcWrite(PWM_CHANNEL, 0);
   digitalWrite(STOP, LOW);
   
   m_state = st_off;
@@ -181,8 +180,7 @@ void MotorZsx11h::soft_stop()
 
 void MotorZsx11h::brake()
 {
-  ledcDetachPin(PWM);
-  digitalWrite(PWM, LOW);
+  ledcWrite(PWM_CHANNEL, 0);
   digitalWrite(STOP, HIGH);
   
   m_state = st_brake;
@@ -195,7 +193,6 @@ void MotorZsx11h::forward(int val)
     soft_stop();
     digitalWrite(STOP, LOW);
     digitalWrite(DIR, DIR_FORWARD);
-    ledcAttachPin(PWM, PWM_CHANNEL);
   }
   
   ledcWrite(PWM_CHANNEL, val);
@@ -209,7 +206,6 @@ void MotorZsx11h::backward(int val)
     soft_stop();
     digitalWrite(STOP, LOW);
     digitalWrite(DIR, !DIR_FORWARD);
-    ledcAttachPin(PWM, PWM_CHANNEL);
   }
   
   ledcWrite(PWM_CHANNEL, val);
