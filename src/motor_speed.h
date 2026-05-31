@@ -7,15 +7,6 @@ class MotorSpeed
 public:
   typedef MotorZsx11h Motor;
 
-  enum BrakeState
-  {
-    bs_zero_speed,
-    bs_fail_safe,
-    bs_speed_compensation,
-    bs_distance_reached,
-    bs_anti_stall,
-  };
-
   struct shot_t
   {
     unsigned long time=0;
@@ -81,6 +72,4 @@ private:
   unsigned m_cur_shot;
 
   static constexpr float m_speed2pwm = 1.0/MAX_SPEED;
-
-  BrakeState m_brake_state = bs_zero_speed;
 };

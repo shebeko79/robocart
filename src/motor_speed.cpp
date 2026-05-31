@@ -8,7 +8,6 @@ void MotorSpeed::apply()
   if(m_dst_speed==0.0 && std::abs(cur_speed)<=CLOSE_TO_ZERO_SPEED_DIFF)
   {
     m_motor.brake();
-    m_brake_state = bs_zero_speed;
     reset_pid();
     return;
   }
@@ -18,7 +17,6 @@ void MotorSpeed::apply()
   if(is_brake && m_motor.get_state() != Motor::st_brake)
   {
     m_motor.brake();
-    m_brake_state = bs_speed_compensation;
     return;
   }
 
@@ -130,7 +128,6 @@ void MotorSpeed::fail_safe()
 {
   m_dst_speed = 0.0;
   m_motor.brake();
-  m_brake_state = bs_fail_safe;
   m_distance_mode = false;
   reset_pid();
 }
@@ -172,7 +169,6 @@ void MotorSpeed::speed_pin_isr()
     m_distance_mode = false;
     m_dst_speed = 0.0;
     m_motor.brake();
-    m_brake_state = bs_distance_reached;
     reset_pid();
   }
 }
@@ -200,7 +196,6 @@ bool MotorSpeed::anti_stall()
   
   //Serial.println("stalled");
   m_motor.brake();
-  m_brake_state = bs_anti_stall;
 
   cur.is_stalled = true;
   return true;
