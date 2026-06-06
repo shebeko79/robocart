@@ -61,14 +61,17 @@ def stop():
 def process():
     global response_buffer
 
-    send_state_request()
+    try:
+        send_state_request()
 
-    data = serial.read()
-    if not data:
-        return
+        data = serial.read()
+        if not data:
+            return
 
-    response_buffer += data.decode()
-    parse_commands()
+        response_buffer += data.decode()
+        parse_commands()
+    except Exception as e:
+        print('mover.process(): '+e)
 
 
 def send_state_request():
