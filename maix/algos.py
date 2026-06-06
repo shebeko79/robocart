@@ -143,11 +143,22 @@ class MoveToAlgo(BaseAlgo):
         else:
             speed = 0
 
-        speed = speed*math.cos(self.ax)
+        if abs(turn) > 2:
+            speed = 0
+        else:
+            speed = speed*math.cos(self.ax)
+            if abs(speed) < 0.1:
+                speed = 0
+            if speed == 0 and abs(turn) < 1.0:
+                turn = 0
 
         print(f"V=({self.ax/math.pi*180:.2f};{self.ay/math.pi*180:.2f}) turn={turn:.2f} speed={speed:.2f} d={d:2f} cur_fit={self.cur_fit} target_fit={self.fit}")
 
-        mover.move(speed, turn)
+        dist = 0.5
+        if speed == 0.0:
+            dist = 0.1
+
+        mover.distance(speed, turn, dist)
 
         if speed == 0 and not self.continues:
             self.stop()
