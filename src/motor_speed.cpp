@@ -105,6 +105,9 @@ float MotorSpeed::calc_pwm(float cur_speed, bool &is_brake)
 
   cur.correction_pwm = constrain(cur.correction_pwm, -2.0*m_pwm_limit, 2.0*m_pwm_limit);
 
+  if(m_dst_speed == 0.0)
+    cur.is_brake = true;
+
   float res_pwm = cur.pwm();
   is_brake = cur.is_brake;
 #if 0
