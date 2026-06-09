@@ -1,9 +1,13 @@
 //Board LOLIN D32
-#include <BluetoothSerial.h>
+#include <Arduino.h>
+#include <esp_now.h>
+#include <WiFi.h>
 
-const String device_name("rcontrol");
+uint8_t broadcastAddress[] = {
+#include "esp_now_robocart_mac.h"  
+};
+
 #define REMOTE_NAME "rccar"
-const char *bluetooth_pin = "1234";
 
 #define VRX_PIN  32
 #define VRY_PIN  33
@@ -18,13 +22,17 @@ int central_maxy=0;
 float last_vx = 0.0;
 float last_vy = 0.0;
 unsigned long last_send_time=0;
+bool send_clear = true;
+
+esp_now_peer_info_t peerInfo;
 
 
 bool processCommand(const char* buf);
 void detectCentralPoint();
 
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
 
-BluetoothSerial SerialBT;
 
 void setup() 
 {
@@ -41,9 +49,19 @@ void setup()
 
   detectCentralPoint();
 
-  SerialBT.begin(device_name,true); //Bluetooth device name
-  SerialBT.setPin(bluetooth_pin);
-  Serial.println("Connecting...");
+  WiFi.mode(WIFI_STA);
+  if (esp_now_init() != ESP_OK)
+    Serial.println("esp_now_init() failed");
+  
+  memcpy(peerInfo.peer_addr, broadcastAddress, sizeof(broadcastAddress));
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  
+  if (esp_now_add_peer(&peerInfo) != ESP_OK)
+    Serial.println("esp_now_add_peer() failed");
+
+  esp_now_register_send_cb(OnDataSent);
+  esp_now_register_recv_cb(OnDataRecv);
 }
 
 void detectCentralPoint()
@@ -87,58 +105,27 @@ void detectCentralPoint()
   Serial.println("]");
 }
 
-void connectBT()
+void sendData(const String& str)
 {
-  if(SerialBT.connected())
-  {
-    return;
-  }
-
-  digitalWrite(LED,LOW);  
-  delay(250);
-  digitalWrite(LED,HIGH);  
-
-
-  if(SerialBT.connect(REMOTE_NAME))
-  {
-    Serial.println("Connected");
-    digitalWrite(LED,LOW);
-    return;
-  }
+  send_clear = false;
+  
+  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) str.c_str(), str.length());
+  Serial.printf("sendData(): %d\n",result);
 }
 
-void readBT()
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
-  if (!SerialBT.available())
-    return;
+}
 
-  static uint8_t sbuf[256];
-
-  unsigned long timeout = millis() + 1000;
-
-  for(int i = 0 ; timeout>millis();)
-  {
-    int len = SerialBT.available();
-    
-    if(len == 0)
-    {
-      delay(100);
-      continue;
-    }
-    
-    if(i + len>sizeof(sbuf)-1)
-      len = sizeof(sbuf)-1 - i;
-    
-    SerialBT.readBytes(sbuf + i, len);
-    
-    sbuf[i+len] = 0;
-    i+=len;
-
-    if(strchr((const char*)sbuf,'\r') != nullptr)
-      break;
-  }
-
-  //Serial.println((const char*)sbuf);
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
+{
+  String s(incomingData,len);
+  Serial.printf("%02x:%02x:%02x:%02x:%02x:%02x msg=%s",
+    mac[0],mac[1],mac[2],mac[3],mac[4],mac[5],
+    s.c_str());
+  
+  if(memcmp(mac,broadcastAddress,sizeof(broadcastAddress))==0)
+    send_clear = true;
 }
 
 float convert(int val,int central_min,int central_max)
@@ -158,11 +145,6 @@ float convert(int val,int central_min,int central_max)
 
 void processJoystick()
 {
-  if(!SerialBT.connected())
-  {
-    return;
-  }
-
   // read X and Y analog values
   int x = analogRead(VRX_PIN);
   int y = analogRead(VRY_PIN);
@@ -172,15 +154,16 @@ void processJoystick()
 
   unsigned long cur_time=millis();
 
-  if(last_vx==vx && last_vy==vy && cur_time-last_send_time<250)
+  const bool is_timeout = send_clear&&cur_time-last_send_time>=250 || !send_clear&&cur_time-last_send_time>=500;
+
+  //Serial.printf("processJoystick()is_timeout=%d send_clear=%d diff=%d\n",is_timeout,send_clear,cur_time-last_send_time);
+
+  if(last_vx==vx && last_vy==vy && !is_timeout)
     return;
 
-  //Serial.print("vx=");
-  //Serial.print(vx);
-  //Serial.print(" vy=");
-  //Serial.println(vy);
-
   last_send_time=cur_time;
+  last_vx=vx;
+  last_vy=vy;
 
   String str = "cmd:"REMOTE_NAME":drive:";
   str+=String(vy);
@@ -191,16 +174,11 @@ void processJoystick()
   if(vx!=0.0 || vy!=0.0)
     Serial.println(str);
     
-  SerialBT.print(str);
+  sendData(str);
 }
 
 void processButton()
 {
-  if(!SerialBT.connected())
-  {
-    return;
-  }
-
   if(digitalRead(BUTTON_PIN) != LOW)
     return;
 
@@ -222,14 +200,12 @@ void processButton()
   String str = "cmd:"REMOTE_NAME":block:0\r";
 
   Serial.println(str);
-  SerialBT.print(str);
+  sendData(str);
   delay(1000);
 }
 
 void loop()
 {
-  connectBT();
-  readBT();
   processJoystick();
   processButton();
   delay(50);

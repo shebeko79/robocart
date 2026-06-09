@@ -16,3 +16,5 @@ wifi.pass.*
 wifi.ssid.*
 udprelay_cfg.py
 *.bak
+esp_now_robocart_mac.h
+esp_now_remote_mac.h

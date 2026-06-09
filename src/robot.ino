@@ -3,6 +3,9 @@
 #include "robot_pins.h"
 #include "power_managment.h"
 #include <BluetoothSerial.h>
+#include <esp_now.h>
+#include <WiFi.h>
+#include <StreamString.h>
 
 #define DEVICE_NAME "rccar"
 static const int portNumber = 1500;
@@ -19,15 +22,24 @@ volatile unsigned long last_ms = 0;
 bool auto_cmd_blocked = false;
 static volatile TaskHandle_t motor_task_handle = NULL;
 uint8_t sbuf[256];
-char incomingUdpPacket[256];
 
 template<typename T>
 void processCommand(T& stream, const char* buf,bool blocked);
 
 static void motors_task(void *);
 
+void OnEspNowDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len);
+
 BluetoothSerial SerialBT;
 #define SerialAuto Serial2
+
+esp_now_peer_info_t remoteEspNowPeer;
+uint8_t remoteEspNowMac[] = {
+#include "esp_now_remote_mac.h"  
+};
+uint8_t esp_now_buf[250];
+uint8_t esp_now_local_buf[251];
+bool esp_now_buf_available = false;
 
 float relative_max_speed = RELATIVE_MAX_SPEED;
 
@@ -70,6 +82,21 @@ void setup()
 
   SerialBT.begin(DEVICE_NAME); //Bluetooth device name
   SerialBT.setPin(bluetooth_pin);
+
+  WiFi.mode(WIFI_STA);
+  if (esp_now_init() != ESP_OK)
+    Serial.println("esp_now_init() failed");
+
+  esp_now_local_buf[250]=0;
+  
+  memcpy(remoteEspNowPeer.peer_addr, remoteEspNowMac, sizeof(remoteEspNowMac));
+  remoteEspNowPeer.channel = 0;  
+  remoteEspNowPeer.encrypt = false;
+  
+  if (esp_now_add_peer(&remoteEspNowPeer) != ESP_OK)
+    Serial.println("esp_now_add_peer() failed");
+
+  esp_now_register_recv_cb(OnEspNowDataRecv);
 
   leftWheel.init();
   rightWheel.init();
@@ -132,6 +159,28 @@ void processStream(T& stream, const char* caption,bool blocked)
     cur=next+1;
     next= strchr(cur, '\r');
   }
+}
+
+void OnEspNowDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
+{
+  if(memcmp(mac,remoteEspNowMac,sizeof(remoteEspNowMac))!=0)
+    return;
+  
+  memcpy(esp_now_buf,incomingData,len);
+  esp_now_buf_available = true;
+}
+
+void processEsp()
+{
+  if(!esp_now_buf_available)
+    return;
+  
+  memcpy(esp_now_local_buf,esp_now_buf,sizeof(esp_now_buf));
+  esp_now_buf_available = false;
+
+  StreamString answer;
+  processCommand(answer, (const char*)esp_now_local_buf, false);
+  esp_now_send(remoteEspNowMac, (uint8_t *) answer.c_str(), answer.length());
 }
 
 bool processDriveCommand(const char* buf)
@@ -342,7 +391,7 @@ void processCommand(T& stream, const char* buf,bool blocked)
 
     if(res && !blocked)
       last_ms = millis();
-}
+  }
   else if(cmd == "sleep")
   {
     res = processSleepCommand(buf);
@@ -449,6 +498,7 @@ void loop()
 {
   drive_request = DriveRequest();
   processStream(SerialBT,"BT",false);
+  processEsp();
   
   if(!auto_cmd_blocked && drive_request.active)
   {
