@@ -1,0 +1,4 @@
+rtsp: yes
+
+paths:
+  camera:
