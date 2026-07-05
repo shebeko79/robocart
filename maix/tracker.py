@@ -227,7 +227,7 @@ def remove_lastnanotrack():
         nanotrack_objects.pop()
 
 
-def track(img: image.Image):
+def track(img: image.Image, yolo_img: image.Image):
     global yolo_objects
 
     if len(nanotrack_objects) > 0:
@@ -237,10 +237,14 @@ def track(img: image.Image):
         for o in nanotrack_objects:
             o.track(nano_img)
 
-    room_img = img
-    if room_img.width() != yolo_model.input_width() or room_img.height() != yolo_model.input_height():
-        room_img = img.resize(yolo_model.input_width(), yolo_model.input_height())
-
-    yolo_objects = yolo_model.detect(room_img, conf_th=0.5, iou_th=0.45)
+    yolo_objects = yolo_model.detect(yolo_img, conf_th=0.5, iou_th=0.45)
     for tr in yolo_trackers:
         tr.track(yolo_objects)
+
+
+def resize_image_for_yolo_model(img: image.Image):
+    yolo_img = img
+    if yolo_img.width() != yolo_model.input_width() or yolo_img.height() != yolo_model.input_height():
+        yolo_img = img.resize(yolo_model.input_width(), yolo_model.input_height())
+
+    return yolo_img

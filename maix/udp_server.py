@@ -12,12 +12,16 @@ import tracker
 
 UDP_PORT = 5005
 IMG_NO_ACK_TIMEOUT = 3000
+IMG_NO_ACK_TIMEOUT_RELAY = 5000
 STATE_SEND_PERIOD = 5000
 CONNECTION_EXPIRE_TIMEOUT = 60
 GET_ADDRESS_TIMEOUT = 60
 MIN_JPEG_QUALITY = 5
+DOWNSCALE_JPEG_QUALITY = 35
+UPSCALE_JPEG_QUALITY = 55
 MAX_JPEG_QUALITY = 75
 EXPECTED_JPEG_SIZE = 40000
+EXPECTED_JPEG_SIZE_RELAY = 8000
 MAX_JPEG_SIZE = EXPECTED_JPEG_SIZE*2
 
 
@@ -38,6 +42,12 @@ class UdpConnection(PacketProcessor):
         self.last_state_send_time = 0
         self.last_received_time = time.time_s()
         self.packets = []
+
+        self.img_no_ack_timeout = IMG_NO_ACK_TIMEOUT
+        self.is_image_timeout = False
+        self.max_jpeg_size = MAX_JPEG_SIZE
+        self.expected_jpeg_size = EXPECTED_JPEG_SIZE
+        self.is_rescale_image = False
 
         if key is not None:
             self.aes = aes_pack.AesPack(key)
@@ -68,7 +78,7 @@ class UdpConnection(PacketProcessor):
         sel = select.select([self.sock], [], [self.sock], 0)
 
         if len(sel[2]) != 0:
-            print('UdpServer.do_receive() socket error')
+            print('UdpConnection.do_receive() socket error')
             return
 
         if len(sel[0]) == 0:
@@ -101,7 +111,7 @@ class UdpConnection(PacketProcessor):
         sel = select.select([], [self.sock], [self.sock], 0)
 
         if len(sel[2]) != 0:
-            print('UdpServer.do_send() socket error')
+            print('UdpConnection.do_send() socket error')
             return
 
         if len(sel[1]) == 0:
@@ -123,10 +133,11 @@ class UdpConnection(PacketProcessor):
 
         tm = time.time_ms()
         self.img = img
+        self.is_image_timeout = tm >= self.last_image_send_time + self.img_no_ack_timeout
+
         is_send_image = self.img is not None and is_ready_to_send and len(self.packets) == 0 and \
                         not self.is_connection_expired() and \
-                        (self.last_ack_packet_number >= self.last_image_packet or
-                         tm >= self.last_image_send_time + IMG_NO_ACK_TIMEOUT)
+                        (self.last_ack_packet_number >= self.last_image_packet or self.is_image_timeout)
 
         #print(f'{is_send_image}: {is_ready_to_send} {len(self.packets)=} {tm=} {self.last_image_send_time=} {self.last_ack_packet_number=} {self.last_image_packet=} {self.send_packet_number=} {self.send_partial_offset=}')
         if is_send_image:
@@ -135,6 +146,7 @@ class UdpConnection(PacketProcessor):
                 self.last_image_packet = self.get_next_packet_number()
                 self.last_image_send_time = tm
                 self.packets.append(pck)
+                #print(f'send_image: image_timeout={self.is_image_timeout} len={len(pck[1])} {self.last_ack_packet_number=} {self.last_image_packet=}')
 
         if self.require_state_answer or tm >= self.last_state_send_time + STATE_SEND_PERIOD:
             #print(f'do_send() send state: {self.require_state_answer=} {tm=} {self.last_state_send_time=}')
@@ -163,7 +175,23 @@ class UdpConnection(PacketProcessor):
         if not self.img:
             return None
 
-        img = self.img.copy()
+        if self.is_image_timeout:
+            self.jpeg_quality -= 1
+            if self.jpeg_quality < MIN_JPEG_QUALITY:
+                self.jpeg_quality = MIN_JPEG_QUALITY
+            #print(f'pack_img() decrease quality by timeout: {self.jpeg_quality=}')
+
+        if self.jpeg_quality < DOWNSCALE_JPEG_QUALITY:
+            self.is_rescale_image = True
+        elif self.jpeg_quality > UPSCALE_JPEG_QUALITY:
+            self.is_rescale_image = False
+
+        if self.is_rescale_image:
+            img = self.img.resize(self.img.width()//2, self.img.height()//2)
+            #print(f'pack_img() rescale to ({img.width()},{img.height()})')
+        else:
+            img = self.img.copy()
+
         if not img:
             return None
 
@@ -175,18 +203,19 @@ class UdpConnection(PacketProcessor):
 
         bts = jpg.to_bytes()
         len_bts = len(bts)
-        if len_bts > EXPECTED_JPEG_SIZE:
+
+        if len_bts > self.expected_jpeg_size:
             self.jpeg_quality -= 1
             if self.jpeg_quality < MIN_JPEG_QUALITY:
                 self.jpeg_quality = MIN_JPEG_QUALITY
-            #print(f'pack_img() decrease quality: {len(bts)=} {self.jpeg_quality=}')
-            if len_bts > MAX_JPEG_SIZE:
+            #print(f'pack_img() decrease quality by size: {len(bts)=} {self.jpeg_quality=}')
+            if len_bts > self.max_jpeg_size:
                 return None
-        elif len_bts < EXPECTED_JPEG_SIZE:
+        elif len_bts < self.expected_jpeg_size and not self.is_image_timeout:
             self.jpeg_quality += 1
             if self.jpeg_quality > MAX_JPEG_QUALITY:
                 self.jpeg_quality = MAX_JPEG_QUALITY
-            #print(f'pack_img() increase quality: {len(bts)=} {self.jpeg_quality=}')
+            #print(f'pack_img() increase quality by size: {len(bts)=} {self.jpeg_quality=}')
 
         return self.pack_chunk(jpg.to_bytes(), PacketType.JPG)
 
@@ -384,6 +413,8 @@ class UdpClient(UdpConnection):
         self.addr = None
         self.last_get_address_time = 0
         self.last_received_time = 0
+        self.img_no_ack_timeout = IMG_NO_ACK_TIMEOUT_RELAY
+        self.expected_jpeg_size = EXPECTED_JPEG_SIZE_RELAY
 
     def process(self, img):
         if not self.sock:

@@ -72,8 +72,9 @@ def main_cycle():
             break
 
         img = cam.read()
+        yolo_img = tracker.resize_image_for_yolo_model(img)
 
-        tracker.track(img)
+        tracker.track(img, yolo_img)
         algos.process()
         mover.process()
         touch_process.read()
@@ -87,7 +88,7 @@ def main_cycle():
         touch_process.process(st, img)
         #http_server.process()
         udp_serv.process(img)
-        udp_relay.process(img)
+        udp_relay.process(yolo_img)
         telegram.process(img)
 
         if track_utils.SLEEP_IDLE_TIMEOUT > 0:
