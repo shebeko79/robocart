@@ -171,6 +171,9 @@ class UdpConnection(PacketProcessor):
 
             is_ready_to_send = len(sel[1]) > 0
 
+            if is_ready_to_send and len(self.packets) > 0:
+                time.sleep_ms(10)
+
     def pack_img(self) -> bytes:
         if not self.img:
             return None
