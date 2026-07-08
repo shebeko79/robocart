@@ -11,7 +11,6 @@ class PacketType(IntEnum):
 
 class PacketProcessor:
     MAX_PACKET_SIZE = 1400
-    MAX_PAYLOAD_SIZE = MAX_PACKET_SIZE - 3
 
     def __init__(self):
         self.send_packet_number = 0
@@ -21,6 +20,14 @@ class PacketProcessor:
         self.receive_partial_chunk = b''
         self.last_received_packet_number = 0
         self.last_received_time = 0
+
+        self.max_packet_size = 0
+        self.max_payload_size = 0
+        self.set_max_packet_size(self.MAX_PACKET_SIZE)
+
+    def set_max_packet_size(self, sz):
+        self.max_packet_size = sz
+        self.max_payload_size = sz - 3
 
     def pack(self) -> bytes:
         if len(self.packets) == 0:
@@ -35,14 +42,14 @@ class PacketProcessor:
             if fit_it == 0:
                 chunk_len -= self.send_partial_offset
 
-            if fit_it != 0 and sz + chunk_len > self.MAX_PAYLOAD_SIZE:
+            if fit_it != 0 and sz + chunk_len > self.max_payload_size:
                 break
             fit_it += 1
             sz += chunk_len
 
-        first_chunk_over_size = sz > self.MAX_PAYLOAD_SIZE
+        first_chunk_over_size = sz > self.max_payload_size
         if first_chunk_over_size:
-            sz = self.MAX_PAYLOAD_SIZE
+            sz = self.max_payload_size
 
         next_partial_offset = self.send_partial_offset
 

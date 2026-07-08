@@ -391,10 +391,11 @@ class UdpConnection(PacketProcessor):
         pan_tilt.release()
 
 
-
 class UdpServer(UdpConnection):
     def __init__(self, sock: socket, key=None):
         super().__init__(key)
+
+        self.set_max_packet_size(45000)
 
         self.sock = sock
         self.sock.setblocking(False)
