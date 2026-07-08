@@ -11,8 +11,6 @@ import track_utils
 import tracker
 
 UDP_PORT = 5005
-IMG_NO_ACK_TIMEOUT = 3000
-IMG_NO_ACK_TIMEOUT_RELAY = 5000
 STATE_SEND_PERIOD = 5000
 CONNECTION_EXPIRE_TIMEOUT = 60
 GET_ADDRESS_TIMEOUT = 60
@@ -20,14 +18,15 @@ MIN_JPEG_QUALITY = 5
 DOWNSCALE_JPEG_QUALITY = 35
 UPSCALE_JPEG_QUALITY = 55
 MAX_JPEG_QUALITY = 75
-EXPECTED_JPEG_SIZE = 40000
-EXPECTED_JPEG_SIZE_RELAY = 8000
-MAX_JPEG_SIZE = EXPECTED_JPEG_SIZE*2
 
 
 class UdpConnection(PacketProcessor):
     def __init__(self, key=None):
         super().__init__()
+
+        self.img_no_ack_timeout = 3000
+        self.expected_jpeg_size = 40000
+
         self.img: image.Image = None
         self.require_state_answer = False
         self.jpeg_quality = 50
@@ -43,10 +42,7 @@ class UdpConnection(PacketProcessor):
         self.last_received_time = time.time_s()
         self.packets = []
 
-        self.img_no_ack_timeout = IMG_NO_ACK_TIMEOUT
         self.is_image_timeout = False
-        self.max_jpeg_size = MAX_JPEG_SIZE
-        self.expected_jpeg_size = EXPECTED_JPEG_SIZE
         self.is_rescale_image = False
 
         if key is not None:
@@ -212,8 +208,6 @@ class UdpConnection(PacketProcessor):
             if self.jpeg_quality < MIN_JPEG_QUALITY:
                 self.jpeg_quality = MIN_JPEG_QUALITY
             #print(f'pack_img() decrease quality by size: {len(bts)=} {self.jpeg_quality=}')
-            if len_bts > self.max_jpeg_size:
-                return None
         elif len_bts < self.expected_jpeg_size and not self.is_image_timeout:
             self.jpeg_quality += 1
             if self.jpeg_quality > MAX_JPEG_QUALITY:
@@ -410,14 +404,15 @@ class UdpClient(UdpConnection):
     def __init__(self, host_name, port, key=None):
         super().__init__(key)
 
+        self.img_no_ack_timeout = 5000
+        self.expected_jpeg_size = 8000
+
         self.sock: socket.socket = None
         self.host_name = host_name
         self.port = port
         self.addr = None
         self.last_get_address_time = 0
         self.last_received_time = 0
-        self.img_no_ack_timeout = IMG_NO_ACK_TIMEOUT_RELAY
-        self.expected_jpeg_size = EXPECTED_JPEG_SIZE_RELAY
 
     def process(self, img):
         if not self.sock:
