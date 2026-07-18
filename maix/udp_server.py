@@ -405,7 +405,7 @@ class UdpClient(UdpConnection):
     def __init__(self, host_name, port, key=None):
         super().__init__(key)
 
-        self.img_no_ack_timeout = 5000
+        self.img_no_ack_timeout = 4000
         self.expected_jpeg_size = 8000
 
         self.sock: socket.socket = None
